@@ -1,1 +1,186 @@
 @import "tailwindcss";
+@import "./App.css";
+
+@layer base {
+  :root {
+    /* ─────────────────────────────────────────
+       SURFACE PALETTE
+       Used for page backgrounds, cards, panels
+    ───────────────────────────────────────── */
+
+    /* Light surfaces  — Dashboard, Reports */
+    --color-surface-light: #f3f4f8; /* page bg (light pages)         */
+    --color-surface-card: #ffffff; /* stat cards, chart panels       */
+    --color-surface-card-border: #d4d4d4; /* card / table borders (light)   */
+
+    /* Dark surfaces — Movie, Screen, Booking */
+    --color-surface-dark: #404040; /* page bg (dark pages)  #545454 → dimmed slightly */
+    --color-surface-panel: #262626; /* main content area bg   neutral-800 */
+    --color-surface-panel-mid: #404040; /* toolbar / elevated row neutral-700 */
+    --color-surface-overlay: #171717; /* deepest bg, hour-header neutral-900 */
+
+    /* ─────────────────────────────────────────
+       TOPBAR / SIDEBAR
+    ───────────────────────────────────────── */
+
+    /* Light topbar (Dashboard, Reports) */
+    --color-topbar-light-bg: #cdd0d5;
+    --color-topbar-light-border: #e5e5e5;
+    --color-topbar-light-text: #171717;
+
+    /* Dark topbar (Movie, Screen, Booking) */
+    --color-topbar-dark-bg: #333739;
+    --color-topbar-dark-border: #2b2f31;
+    --color-topbar-dark-text: #ffffff;
+
+    /* Sidebar */
+    --color-sidebar-bg: #262626; /* neutral-800 */
+    --color-sidebar-active-bg: #404040; /* neutral-700 */
+    --color-sidebar-active-border: #a3a3a3; /* neutral-400 */
+    --color-sidebar-active-text: #ffffff;
+    --color-sidebar-idle-text: #a3a3a3; /* neutral-400 */
+    --color-sidebar-idle-border: transparent;
+
+    /* ─────────────────────────────────────────
+       TEXT
+    ───────────────────────────────────────── */
+
+    --color-text-primary-dark: #e5e5e5; /* neutral-200  — dark-bg pages  */
+    --color-text-secondary-dark: #d4d4d4; /* neutral-300  — supporting text */
+    --color-text-muted-dark: #a3a3a3; /* neutral-400  — placeholders    */
+    --color-text-disabled-dark: #737373; /* neutral-500  — empty states    */
+
+    --color-text-primary-light: #171717; /* neutral-900  — light-bg pages  */
+    --color-text-secondary-light: #525252; /* neutral-600  — supporting text */
+    --color-text-muted-light: #737373; /* neutral-500  — labels          */
+
+    /* ─────────────────────────────────────────
+       BORDERS & DIVIDERS
+    ───────────────────────────────────────── */
+
+    --color-border-dark: #525252; /* neutral-600 — table/card edges */
+    --color-border-mid: #404040; /* neutral-700 — row dividers     */
+    --color-border-light: #d4d4d4; /* neutral-300 — light-page edges */
+
+    /* ─────────────────────────────────────────
+       INTERACTIVE CONTROLS (dark-bg context)
+    ───────────────────────────────────────── */
+
+    --color-input-bg: #404040; /* neutral-700 */
+    --color-input-border: #737373; /* neutral-500 */
+    --color-input-border-focus: #a3a3a3; /* neutral-400 */
+    --color-input-text: #e5e5e5; /* neutral-200 */
+    --color-input-placeholder: #a3a3a3; /* neutral-400 */
+
+    /* ─────────────────────────────────────────
+       BUTTONS
+    ───────────────────────────────────────── */
+
+    /* Primary action (Add Movie, Add Showtime) */
+    --color-btn-primary-bg: #f5f5f5; /* neutral-100 */
+    --color-btn-primary-bg-hover: #ffffff;
+    --color-btn-primary-text: #171717; /* neutral-900 */
+
+    /* Secondary / neutral (Generate Report) */
+    --color-btn-secondary-bg: #a3a3a3; /* neutral-400 */
+    --color-btn-secondary-bg-hover: #737373; /* neutral-500 */
+    --color-btn-secondary-text: #ffffff;
+
+    /* Booking status pills — active */
+    --color-pill-active-bg: #737373; /* neutral-500 */
+    --color-pill-active-text: #ffffff;
+
+    /* Booking status pills — inactive */
+    --color-pill-idle-bg: #404040; /* neutral-700 */
+    --color-pill-idle-text: #d4d4d4; /* neutral-300 */
+    --color-pill-idle-bg-hover: #525252; /* neutral-600 */
+
+    /* ─────────────────────────────────────────
+       STATUS BADGES  (Booking page)
+    ───────────────────────────────────────── */
+
+    --color-status-confirmed-bg: #bbf7d0; /* green-200  */
+    --color-status-confirmed-text: #166534; /* green-800  */
+
+    --color-status-cancelled-bg: #fecaca; /* red-200    */
+    --color-status-cancelled-text: #991b1b; /* red-800    */
+
+    --color-status-pending-bg: #fef08a; /* yellow-200 */
+    --color-status-pending-text: #854d0e; /* yellow-800 */
+
+    /* ─────────────────────────────────────────
+       MOVIE SHOWTIME BLOCK COLORS (Timeline)
+       Mapped from MOVIE_COLORS in tempScreenData
+    ───────────────────────────────────────── */
+
+    /* Add as many movies as needed — these mirror Tailwind bg- classes */
+    --color-movie-a-bg: #bfdbfe; /* blue-200   */
+    --color-movie-a-text: #1e3a5f;
+    --color-movie-b-bg: #bbf7d0; /* green-200  */
+    --color-movie-b-text: #14532d;
+    --color-movie-c-bg: #fde68a; /* amber-200  */
+    --color-movie-c-text: #78350f;
+    --color-movie-d-bg: #fbcfe8; /* pink-200   */
+    --color-movie-d-text: #831843;
+    --color-movie-e-bg: #e9d5ff; /* purple-200 */
+    --color-movie-e-text: #4c1d95;
+
+    /* ─────────────────────────────────────────
+       CHARTS  (Reports & Dashboard)
+    ───────────────────────────────────────── */
+
+    --color-chart-line: #555555;
+    --color-chart-area-fill: #e0e0e0;
+    --color-chart-bar-fill: #bbbbbb;
+    --color-chart-bar-top: #888888;
+    --color-chart-grid: #dddddd;
+    --color-chart-axis: #cccccc;
+
+    /* ─────────────────────────────────────────
+       LOGIN PAGE
+    ───────────────────────────────────────── */
+
+    --color-login-card-bg: #ffffff;
+    --color-login-card-border: #171717; /* border-12 neutral-900 */
+    --color-login-scrim: rgba(0, 0, 0, 0.4);
+    --color-login-input-bg: #fafafa; /* neutral-50  */
+    --color-login-input-border: #d4d4d4; /* neutral-300 */
+    --color-login-input-border-focus: #525252; /* neutral-600 */
+    --color-login-btn-bg: #171717; /* neutral-900 */
+    --color-login-btn-bg-hover: #404040; /* neutral-700 */
+    --color-login-btn-disabled: #a3a3a3; /* neutral-400 */
+    --color-login-error-bg: #fef2f2; /* red-50      */
+    --color-login-error-border: #fecaca; /* red-200     */
+    --color-login-error-text: #dc2626; /* red-600     */
+
+    /* ─────────────────────────────────────────
+       DANGER / DESTRUCTIVE  (Delete button)
+    ───────────────────────────────────────── */
+
+    --color-danger-bg-hover: rgba(127, 29, 29, 0.4); /* red-900/40 */
+    --color-danger-icon-hover: #f87171; /* red-400 */
+    --color-danger-text-hover: #f87171;
+
+    /* ─────────────────────────────────────────
+       FILTER PILLS  (Reports page)
+    ───────────────────────────────────────── */
+
+    --color-filter-pill-active-bg: #d4d4d4; /* neutral-300 */
+    --color-filter-pill-active-text: #171717; /* neutral-900 */
+    --color-filter-pill-idle-bg: #ffffff;
+    --color-filter-pill-idle-text: #525252; /* neutral-600 */
+    --color-filter-pill-idle-bg-hover: #f5f5f5; /* neutral-100 */
+    --color-filter-pill-border: #d4d4d4; /* neutral-300 */
+
+    /* ─────────────────────────────────────────
+       PAGINATION
+    ───────────────────────────────────────── */
+
+    --color-page-btn-border: #737373; /* neutral-500 */
+    --color-page-btn-text: #d4d4d4; /* neutral-300 */
+    --color-page-btn-bg-hover: #525252; /* neutral-600 */
+    --color-page-active-bg: #e5e5e5; /* neutral-200 */
+    --color-page-active-text: #171717; /* neutral-900 */
+    --color-page-active-border: #e5e5e5;
+  }
+}
