@@ -72,27 +72,34 @@ function ScreenFormModal({
     onClose();
   };
 
+  const inputClass =
+    "w-full rounded px-3 py-2 text-sm outline-none transition bg-(--color-surface-card) border border-(--color-border-light) focus:border-(--color-login-input-border-focus) text-(--color-text-primary-light)";
+
+  const selectClass = `${inputClass} appearance-none pr-8`;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
-        {/* Header */}
-        <div className="bg-neutral-200 px-5 py-4 border-b border-neutral-300">
-          <h2 className="text-lg font-bold text-neutral-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--color-login-scrim)">
+      <div className="bg-(--color-surface-card) border border-(--color-surface-card-border) rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
+        {/* Header — light topbar tokens (same as MovieFormModal) */}
+        <div className="bg-(--color-topbar-light-bg) px-5 py-4 border-b border-(--color-topbar-light-border)">
+          <h2 className="text-lg font-bold text-(--color-topbar-light-text)">
             {isEdit ? "Edit Showtime" : "Add New Showtime"}
           </h2>
         </div>
 
         {/* Body */}
-        <div className="px-5 py-5 flex flex-col gap-4 bg-white">
+        <div className="px-5 py-5 flex flex-col gap-4 bg-(--color-surface-card)">
           {/* Row 1: Movie / Language / Format */}
           <div className="flex gap-3">
             <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-sm text-neutral-700">Select Movie</label>
+              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+                Select Movie
+              </label>
               <div className="relative">
                 <select
                   value={form.movie}
                   onChange={set("movie")}
-                  className="w-full appearance-none border border-neutral-400 rounded px-3 py-2 text-sm text-neutral-700 outline-none focus:border-neutral-600 bg-white pr-8"
+                  className={selectClass}
                 >
                   <option value="">Choose a movie</option>
                   {MOVIES.map((m) => (
@@ -100,7 +107,7 @@ function ScreenFormModal({
                   ))}
                 </select>
                 <svg
-                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-(--color-text-muted-light)"
                   width="14"
                   height="14"
                   viewBox="0 0 24 24"
@@ -115,23 +122,27 @@ function ScreenFormModal({
             </div>
 
             <div className="flex flex-col gap-1.5 w-24">
-              <label className="text-sm text-neutral-700">Language</label>
+              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+                Language
+              </label>
               <input
                 type="text"
                 value={form.language}
                 onChange={set("language")}
-                className="w-full border border-neutral-400 rounded px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-600"
+                className={inputClass}
               />
             </div>
 
             <div className="flex flex-col gap-1.5 w-20">
-              <label className="text-sm text-neutral-700">3D / 2D</label>
+              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+                3D / 2D
+              </label>
               <input
                 type="text"
                 value={form.format}
                 onChange={set("format")}
                 placeholder=""
-                className="w-full border border-neutral-400 rounded px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-600"
+                className={inputClass}
               />
             </div>
           </div>
@@ -139,19 +150,21 @@ function ScreenFormModal({
           {/* Row 2: Screen / Date */}
           <div className="flex gap-3">
             <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-sm text-neutral-700">Select Screen</label>
+              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+                Select Screen
+              </label>
               <div className="relative">
                 <select
                   value={form.screen}
                   onChange={set("screen")}
-                  className="w-full appearance-none border border-neutral-400 rounded px-3 py-2 text-sm text-neutral-700 outline-none focus:border-neutral-600 bg-white pr-8"
+                  className={selectClass}
                 >
                   {SCREENS.map((s) => (
                     <option key={s}>{s}</option>
                   ))}
                 </select>
                 <svg
-                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-(--color-text-muted-light)"
                   width="14"
                   height="14"
                   viewBox="0 0 24 24"
@@ -166,29 +179,34 @@ function ScreenFormModal({
             </div>
 
             <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-sm text-neutral-700">Date</label>
+              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+                Date
+              </label>
               <input
                 type="date"
                 value={form.date}
                 onChange={set("date")}
-                className="w-full border border-neutral-400 rounded px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-600"
+                className={inputClass}
               />
             </div>
           </div>
 
           {/* Time Slot Picker */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm text-neutral-700">Time Slot</label>
-            <div className="flex gap-0 border border-neutral-400 rounded overflow-hidden">
+            <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+              Time Slot
+            </label>
+            <div className="flex gap-0 border border-(--color-border-light) rounded overflow-hidden">
               {TIME_SLOTS.map((slot) => (
                 <button
                   key={slot}
+                  type="button"
                   onClick={() => selectSlot(slot)}
-                  className={`flex-1 py-2 text-xs font-medium border-r border-neutral-300 last:border-r-0 transition-colors whitespace-nowrap
+                  className={`flex-1 py-2 text-xs font-medium border-r border-(--color-border-light) last:border-r-0 transition-colors whitespace-nowrap
                     ${
                       form.selectedSlot === slot
-                        ? "bg-neutral-400 text-white"
-                        : "bg-white text-neutral-700 hover:bg-neutral-100"
+                        ? "bg-(--color-btn-secondary-bg) text-(--color-btn-secondary-text)"
+                        : "bg-(--color-surface-card) text-(--color-text-secondary-light) hover:bg-(--color-filter-pill-idle-bg-hover)"
                     }`}
                 >
                   {slot}
@@ -200,21 +218,25 @@ function ScreenFormModal({
           {/* Start Time / End Time */}
           <div className="flex gap-3">
             <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-sm text-neutral-700">Start Time</label>
+              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+                Start Time
+              </label>
               <input
                 type="text"
                 value={form.startTime}
                 onChange={set("startTime")}
-                className="w-full border border-neutral-400 rounded px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-600"
+                className={inputClass}
               />
             </div>
             <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-sm text-neutral-700">End Time</label>
+              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+                End Time
+              </label>
               <input
                 type="text"
                 value={form.endTime}
                 onChange={set("endTime")}
-                className="w-full border border-neutral-400 rounded px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-600"
+                className={inputClass}
               />
             </div>
           </div>
@@ -222,21 +244,21 @@ function ScreenFormModal({
           {/* Seat Plan / Seat Price */}
           <div className="flex gap-3">
             <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-sm text-neutral-700">
+              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
                 Seat Plan Template
               </label>
               <div className="relative">
                 <select
                   value={form.seatPlan}
                   onChange={set("seatPlan")}
-                  className="w-full appearance-none border border-neutral-400 rounded px-3 py-2 text-sm text-neutral-700 outline-none focus:border-neutral-600 bg-white pr-8"
+                  className={selectClass}
                 >
                   {SEAT_PLANS.map((p) => (
                     <option key={p}>{p}</option>
                   ))}
                 </select>
                 <svg
-                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-(--color-text-muted-light)"
                   width="14"
                   height="14"
                   viewBox="0 0 24 24"
@@ -251,19 +273,21 @@ function ScreenFormModal({
             </div>
 
             <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-sm text-neutral-700">Seat Price</label>
+              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+                Seat Price
+              </label>
               <div className="relative">
                 <select
                   value={form.seatPrice}
                   onChange={set("seatPrice")}
-                  className="w-full appearance-none border border-neutral-400 rounded px-3 py-2 text-sm text-neutral-700 outline-none focus:border-neutral-600 bg-white pr-8"
+                  className={selectClass}
                 >
                   {SEAT_PRICES.map((p) => (
                     <option key={p}>{p}</option>
                   ))}
                 </select>
                 <svg
-                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-(--color-text-muted-light)"
                   width="14"
                   height="14"
                   viewBox="0 0 24 24"
@@ -279,17 +303,19 @@ function ScreenFormModal({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-5 py-4 bg-neutral-100 border-t border-neutral-200">
+        {/* Footer — matches MovieFormModal */}
+        <div className="flex items-center justify-end gap-3 px-5 py-4 bg-(--color-surface-light) border-t border-(--color-border-light)">
           <button
+            type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded border border-neutral-400 text-sm font-medium text-neutral-700 hover:bg-neutral-200 transition"
+            className="px-5 py-2 rounded border text-sm font-medium transition border-(--color-border-light) text-(--color-text-secondary-light) hover:bg-(--color-filter-pill-idle-bg-hover)"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSave}
-            className="px-5 py-2 rounded bg-neutral-900 text-sm font-semibold text-white hover:bg-neutral-700 transition"
+            className="px-5 py-2 rounded text-sm font-semibold text-white transition bg-(--color-login-btn-bg) hover:bg-(--color-login-btn-bg-hover)"
           >
             Save
           </button>

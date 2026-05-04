@@ -26,43 +26,42 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen w-full flex items-center justify-center relative"
+      className="min-h-screen w-full flex items-center justify-center relative bg-(--color-login-page-bg-fallback)"
       style={{
         backgroundImage: `url(${loginBg})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
-        backgroundColor: "#1a1a1a",
       }}
     >
       {/* Scrim */}
-      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-(--color-login-scrim)" />
 
       {/* Card */}
-      <div className="relative z-10 bg-white w-full max-w-108 mx-4 border-12 border-neutral-900 shadow-2xl">
+      <div className="relative z-10 w-full max-w-108 mx-4 border-12 border-(--color-login-card-border) bg-(--color-login-card-bg) shadow-2xl">
         <div className="px-12 py-20 flex flex-col gap-4">
           {/* Title */}
-          <h1 className="text-4xl font-black text-neutral-900 text-center tracking-wide uppercase mb-8">
+          <h1 className="text-4xl font-black text-center tracking-wide uppercase mb-8 text-(--color-text-primary-light)">
             Admin Login
           </h1>
 
           {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-xs px-3 py-2 rounded">
+            <div className="text-xs px-3 py-2 rounded border bg-(--color-login-error-bg) border-(--color-login-error-border) text-(--color-login-error-text)">
               {error}
             </div>
           )}
 
           {/* Email */}
-          <div className="flex items-center gap-2.5 border border-neutral-300 rounded px-3 py-2.5 bg-neutral-50 focus-within:border-neutral-600 focus-within:ring-1 focus-within:ring-neutral-300 transition">
+          <div className="flex items-center gap-2.5 rounded px-3 py-2.5 border border-(--color-login-input-border) bg-(--color-login-input-bg) transition focus-within:border-(--color-login-input-border-focus) focus-within:ring-1 focus-within:ring-(--color-login-input-border)">
             <svg
               width="15"
               height="15"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#999"
+              stroke="currentColor"
               strokeWidth="1.8"
               strokeLinecap="round"
-              className="shrink-0"
+              className="shrink-0 text-(--color-text-muted-light)"
             >
               <circle cx="12" cy="8" r="4" />
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
@@ -73,21 +72,21 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-800 placeholder-neutral-400"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-(--color-text-primary-light) placeholder-(--color-text-muted-light)"
             />
           </div>
 
           {/* Password */}
-          <div className="flex items-center gap-2.5 border border-neutral-300 rounded px-3 py-2.5 bg-neutral-50 focus-within:border-neutral-600 focus-within:ring-1 focus-within:ring-neutral-300 transition">
+          <div className="flex items-center gap-2.5 rounded px-3 py-2.5 border border-(--color-login-input-border) bg-(--color-login-input-bg) transition focus-within:border-(--color-login-input-border-focus) focus-within:ring-1 focus-within:ring-(--color-login-input-border)">
             <svg
               width="15"
               height="15"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#999"
+              stroke="currentColor"
               strokeWidth="1.8"
               strokeLinecap="round"
-              className="shrink-0"
+              className="shrink-0 text-(--color-text-muted-light)"
             >
               <rect x="3" y="11" width="18" height="11" rx="2" />
               <path d="M7 11V7a5 5 0 0110 0v4" />
@@ -98,7 +97,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-800 placeholder-neutral-400"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-(--color-text-primary-light) placeholder-(--color-text-muted-light)"
             />
           </div>
 
@@ -106,7 +105,7 @@ export default function LoginPage() {
           <button
             onClick={() => void handleLogin()}
             disabled={loading}
-            className="w-full bg-neutral-900 hover:bg-neutral-700 disabled:bg-neutral-400 text-white font-bold py-2.5 rounded transition-colors text-sm tracking-widest uppercase mt-1"
+            className="w-full font-bold py-2.5 rounded transition-colors text-sm tracking-widest uppercase mt-1 text-white bg-(--color-login-btn-bg) hover:bg-(--color-login-btn-bg-hover) disabled:bg-(--color-login-btn-disabled)"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -133,15 +132,15 @@ export default function LoginPage() {
           </button>
 
           {/* Forgot password */}
-          <p className="text-center text-xs text-neutral-500 hover:text-neutral-800 cursor-pointer transition-colors mt-1">
+          <p className="text-center text-xs cursor-pointer transition-colors mt-1 text-(--color-text-muted-light) hover:text-(--color-text-primary-light)">
             Forgot Password?
           </p>
 
           {/* Divider */}
-          <div className="border-t border-neutral-200" />
+          <div className="border-t border-(--color-border-light)" />
 
           {/* Contact IT Support */}
-          <p className="text-center text-xs text-neutral-600 underline underline-offset-2 cursor-pointer hover:text-neutral-900 transition-colors">
+          <p className="text-center text-xs underline underline-offset-2 cursor-pointer transition-colors text-(--color-text-secondary-light) hover:text-(--color-text-primary-light)">
             Contact IT Support
           </p>
         </div>

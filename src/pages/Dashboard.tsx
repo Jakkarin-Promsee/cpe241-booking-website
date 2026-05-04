@@ -7,15 +7,19 @@ import {
 function StatusCards() {
   return (
     <div>
-      <p className="mb-3 text-sm font-bold text-neutral-800">Status Cards</p>
+      <p className="mb-3 text-sm font-bold text-(--color-text-primary-light)">
+        Status Cards
+      </p>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {STATUS_CARDS.map((card) => (
           <div
             key={card.label}
-            className="rounded-md border border-neutral-300 bg-white px-4 py-3"
+            className="rounded-md border border-(--color-surface-card-border) bg-(--color-surface-card) px-4 py-3"
           >
-            <p className="mb-1.5 text-xs text-neutral-500">{card.label}</p>
-            <p className="text-2xl leading-tight font-bold text-neutral-900">
+            <p className="mb-1.5 text-xs text-(--color-text-muted-light)">
+              {card.label}
+            </p>
+            <p className="text-2xl leading-tight font-bold text-(--color-text-primary-light)">
               {card.value}
             </p>
           </div>
@@ -44,8 +48,8 @@ function TrendChart() {
     .join(" ");
 
   return (
-    <div className="rounded-md border border-neutral-300 bg-white px-5 py-4">
-      <p className="mb-3 text-sm font-semibold text-neutral-800">
+    <div className="rounded-md border border-(--color-surface-card-border) bg-(--color-surface-card) px-5 py-4">
+      <p className="mb-3 text-sm font-semibold text-(--color-text-primary-light)">
         Weekly Booking Trend
       </p>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
@@ -56,7 +60,7 @@ function TrendChart() {
             x2={pad.l + cW}
             y1={pad.t + f * cH}
             y2={pad.t + f * cH}
-            stroke="#ececec"
+            stroke="var(--color-chart-grid)"
             strokeWidth="1"
           />
         ))}
@@ -65,7 +69,7 @@ function TrendChart() {
           y1={pad.t}
           x2={pad.l}
           y2={pad.t + cH}
-          stroke="#ccc"
+          stroke="var(--color-chart-axis)"
           strokeWidth="1"
         />
         <line
@@ -73,13 +77,13 @@ function TrendChart() {
           y1={pad.t + cH}
           x2={pad.l + cW}
           y2={pad.t + cH}
-          stroke="#ccc"
+          stroke="var(--color-chart-axis)"
           strokeWidth="1"
         />
         <path
           d={linePath}
           fill="none"
-          stroke="#333"
+          stroke="var(--color-chart-line)"
           strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -91,18 +95,18 @@ function TrendChart() {
 
 function ShowtimesTable() {
   return (
-    <div className="rounded-md border border-neutral-300 bg-white px-5 py-4">
-      <p className="mb-3 text-sm font-semibold text-neutral-800">
+    <div className="rounded-md border border-(--color-surface-card-border) bg-(--color-surface-card) px-5 py-4">
+      <p className="mb-3 text-sm font-semibold text-(--color-text-primary-light)">
         Upcoming Showtimes
       </p>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-neutral-200">
+            <tr className="bg-(--color-chart-area-fill)">
               {["Movie", "Screen", "Time", "Seats Sold"].map((h) => (
                 <th
                   key={h}
-                  className="border border-neutral-300 px-3 py-2 text-left text-xs font-semibold text-neutral-600"
+                  className="border border-(--color-surface-card-border) px-3 py-2 text-left text-xs font-semibold text-(--color-text-secondary-light)"
                 >
                   {h}
                 </th>
@@ -113,12 +117,19 @@ function ShowtimesTable() {
             {SHOWTIMES.map((row, i) => (
               <tr
                 key={i}
-                className={i % 2 === 0 ? "bg-neutral-50" : "bg-white"}
+                className={
+                  i % 2 === 0
+                    ? "bg-(--color-surface-light)"
+                    : "bg-(--color-surface-card)"
+                }
               >
                 {[row.movie, row.screen, row.time, row.seats].map((_, j) => (
-                  <td key={j} className="border border-neutral-200 px-3 py-2.5">
+                  <td
+                    key={j}
+                    className="border border-(--color-border-light) px-3 py-2.5"
+                  >
                     <div
-                      className="h-3 rounded bg-neutral-300"
+                      className="h-3 rounded bg-(--color-chart-bar-fill)"
                       style={{
                         width: j === 3 ? 40 : j === 2 ? 70 : j === 1 ? 60 : 100,
                       }}

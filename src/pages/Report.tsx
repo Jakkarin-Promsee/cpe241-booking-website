@@ -29,6 +29,11 @@ function LineChart() {
     linePath +
     ` L${pts[pts.length - 1][0]},${pad.t + cH} L${pts[0][0]},${pad.t + cH} Z`;
 
+  const gridStroke = "var(--color-chart-grid)";
+  const axisStroke = "var(--color-chart-axis)";
+  const areaFill = "var(--color-chart-area-fill)";
+  const lineStroke = "var(--color-chart-line)";
+
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
       {/* Grid lines */}
@@ -39,7 +44,7 @@ function LineChart() {
           x2={pad.l + cW}
           y1={pad.t + f * cH}
           y2={pad.t + f * cH}
-          stroke="#ddd"
+          stroke={gridStroke}
           strokeWidth="1"
         />
       ))}
@@ -49,7 +54,7 @@ function LineChart() {
         y1={pad.t}
         x2={pad.l}
         y2={pad.t + cH}
-        stroke="#bbb"
+        stroke={axisStroke}
         strokeWidth="1"
       />
       <line
@@ -57,16 +62,16 @@ function LineChart() {
         y1={pad.t + cH}
         x2={pad.l + cW}
         y2={pad.t + cH}
-        stroke="#bbb"
+        stroke={axisStroke}
         strokeWidth="1"
       />
       {/* Area fill */}
-      <path d={areaPath} fill="#e0e0e0" opacity="0.6" />
+      <path d={areaPath} fill={areaFill} opacity="0.6" />
       {/* Line */}
       <path
         d={linePath}
         fill="none"
-        stroke="#555"
+        stroke={lineStroke}
         strokeWidth="2"
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -84,6 +89,11 @@ function BarChart() {
   const barW = (cW / BAR_DATA.length) * 0.55;
   const gap = cW / BAR_DATA.length;
 
+  const gridStroke = "var(--color-chart-grid)";
+  const axisStroke = "var(--color-chart-axis)";
+  const barFill = "var(--color-chart-bar-fill)";
+  const barTopFill = "var(--color-chart-bar-top)";
+
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
       {/* Grid lines */}
@@ -94,7 +104,7 @@ function BarChart() {
           x2={pad.l + cW}
           y1={pad.t + f * cH}
           y2={pad.t + f * cH}
-          stroke="#ddd"
+          stroke={gridStroke}
           strokeWidth="1"
         />
       ))}
@@ -104,7 +114,7 @@ function BarChart() {
         y1={pad.t}
         x2={pad.l}
         y2={pad.t + cH}
-        stroke="#bbb"
+        stroke={axisStroke}
         strokeWidth="1"
       />
       <line
@@ -112,7 +122,7 @@ function BarChart() {
         y1={pad.t + cH}
         x2={pad.l + cW}
         y2={pad.t + cH}
-        stroke="#bbb"
+        stroke={axisStroke}
         strokeWidth="1"
       />
       {/* Bars */}
@@ -122,8 +132,8 @@ function BarChart() {
         const y = pad.t + cH - barH;
         return (
           <g key={i}>
-            <rect x={x} y={y} width={barW} height={barH} fill="#bbb" rx="2" />
-            <rect x={x} y={y} width={barW} height={4} fill="#888" rx="1" />
+            <rect x={x} y={y} width={barW} height={barH} fill={barFill} rx="2" />
+            <rect x={x} y={y} width={barW} height={4} fill={barTopFill} rx="1" />
           </g>
         );
       })}
@@ -139,21 +149,22 @@ export default function ReportsPage() {
   const stats = STATS[activeFilter];
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto min-w-0 bg-neutral-100 p-5 gap-5">
+    <div className="flex-1 flex flex-col overflow-y-auto min-w-0 p-5 gap-5 bg-(--color-surface-light)">
       {/* Time filter pills */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-semibold text-neutral-700">Filter :</span>
-        <div className="flex gap-0 border border-neutral-300 rounded overflow-hidden">
+        <span className="text-sm font-semibold text-(--color-text-secondary-light)">
+          Filter :
+        </span>
+        <div className="flex gap-0 rounded overflow-hidden border border-(--color-filter-pill-border)">
           {FILTERS.map((f) => (
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              className={`px-4 py-1.5 text-sm font-medium border-r border-neutral-300 last:border-r-0 transition-colors whitespace-nowrap
-                ${
-                  activeFilter === f
-                    ? "bg-neutral-300 text-neutral-900 font-semibold"
-                    : "bg-white text-neutral-600 hover:bg-neutral-100"
-                }`}
+              className={`px-4 py-1.5 text-sm font-medium border-r border-(--color-filter-pill-border) last:border-r-0 transition-colors whitespace-nowrap ${
+                activeFilter === f
+                  ? "bg-(--color-filter-pill-active-bg) text-(--color-filter-pill-active-text) font-semibold"
+                  : "bg-(--color-filter-pill-idle-bg) text-(--color-filter-pill-idle-text) hover:bg-(--color-filter-pill-idle-bg-hover)"
+              }`}
             >
               {f}
             </button>
@@ -170,10 +181,12 @@ export default function ReportsPage() {
         ].map((card) => (
           <div
             key={card.label}
-            className="bg-white border border-neutral-300 rounded-lg px-5 py-4"
+            className="rounded-lg px-5 py-4 border bg-(--color-surface-card) border-(--color-surface-card-border)"
           >
-            <p className="text-sm text-neutral-500 mb-1">{card.label}</p>
-            <p className="text-3xl font-bold text-neutral-900 leading-tight">
+            <p className="text-sm mb-1 text-(--color-text-muted-light)">
+              {card.label}
+            </p>
+            <p className="text-3xl font-bold leading-tight text-(--color-text-primary-light)">
               {card.value}
             </p>
           </div>
@@ -183,16 +196,16 @@ export default function ReportsPage() {
       {/* Charts row */}
       <div className="grid grid-cols-2 gap-4">
         {/* Line chart */}
-        <div className="bg-white border border-neutral-300 rounded-lg px-5 py-4">
-          <p className="text-sm font-bold text-neutral-800 mb-3">
+        <div className="rounded-lg px-5 py-4 border bg-(--color-surface-card) border-(--color-surface-card-border)">
+          <p className="text-sm font-bold mb-3 text-(--color-text-primary-light)">
             Daily Revenue Trend
           </p>
           <LineChart />
         </div>
 
         {/* Bar chart */}
-        <div className="bg-white border border-neutral-300 rounded-lg px-5 py-4">
-          <p className="text-sm font-bold text-neutral-800 mb-3">
+        <div className="rounded-lg px-5 py-4 border bg-(--color-surface-card) border-(--color-surface-card-border)">
+          <p className="text-sm font-bold mb-3 text-(--color-text-primary-light)">
             Daily Revenue Trend
           </p>
           <BarChart />
@@ -200,28 +213,28 @@ export default function ReportsPage() {
       </div>
 
       {/* Report generator */}
-      <div className="bg-white border border-neutral-300 rounded-lg px-5 py-5">
-        <p className="text-sm font-bold text-neutral-800 mb-4">
+      <div className="rounded-lg px-5 py-5 border bg-(--color-surface-card) border-(--color-surface-card-border)">
+        <p className="text-sm font-bold mb-4 text-(--color-text-primary-light)">
           Upcoming Showtimes
         </p>
         <div className="flex items-end gap-4 flex-wrap">
           {/* Report Type */}
           <div className="flex flex-col gap-1.5 flex-1 min-w-40">
-            <label className="text-sm font-semibold text-neutral-700">
+            <label className="text-sm font-semibold text-(--color-text-secondary-light)">
               Report Type
             </label>
             <div className="relative">
               <select
                 value={reportType}
                 onChange={(e) => setReportType(e.target.value)}
-                className="w-full appearance-none border border-neutral-400 rounded px-3 py-2 text-sm text-neutral-700 outline-none focus:border-neutral-600 bg-white pr-8"
+                className="w-full appearance-none rounded px-3 py-2 text-sm outline-none pr-8 bg-(--color-surface-card) border border-(--color-border-light) focus:border-(--color-login-input-border-focus) text-(--color-text-secondary-light)"
               >
                 {REPORT_TYPES.map((r) => (
                   <option key={r}>{r}</option>
                 ))}
               </select>
               <svg
-                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500"
+                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-(--color-text-muted-light)"
                 width="13"
                 height="13"
                 viewBox="0 0 24 24"
@@ -237,14 +250,14 @@ export default function ReportsPage() {
 
           {/* Filter By */}
           <div className="flex flex-col gap-1.5 flex-1 min-w-40">
-            <label className="text-sm font-semibold text-neutral-700">
+            <label className="text-sm font-semibold text-(--color-text-secondary-light)">
               Filter By
             </label>
             <div className="relative">
               <select
                 value={filterBy}
                 onChange={(e) => setFilterBy(e.target.value)}
-                className="w-full appearance-none border border-neutral-400 rounded px-3 py-2 text-sm text-neutral-400 outline-none focus:border-neutral-600 bg-white pr-8"
+                className="w-full appearance-none rounded px-3 py-2 text-sm outline-none pr-8 bg-(--color-surface-card) border border-(--color-border-light) focus:border-(--color-login-input-border-focus) text-(--color-text-muted-light)"
               >
                 <option value="">Filter By</option>
                 {FILTER_BY.map((f) => (
@@ -252,7 +265,7 @@ export default function ReportsPage() {
                 ))}
               </select>
               <svg
-                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500"
+                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-(--color-text-muted-light)"
                 width="13"
                 height="13"
                 viewBox="0 0 24 24"
@@ -269,7 +282,7 @@ export default function ReportsPage() {
           {/* Generate button */}
           <button
             onClick={() => console.log("Generate:", reportType, filterBy)}
-            className="px-5 py-2 bg-neutral-400 hover:bg-neutral-500 text-white text-sm font-semibold rounded transition-colors whitespace-nowrap"
+            className="px-5 py-2 text-sm font-semibold rounded transition-colors whitespace-nowrap bg-(--color-btn-secondary-bg) hover:bg-(--color-btn-secondary-bg-hover) text-(--color-btn-secondary-text)"
           >
             Generate Report
           </button>
