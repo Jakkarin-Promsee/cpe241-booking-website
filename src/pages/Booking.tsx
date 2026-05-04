@@ -3,45 +3,54 @@ import { BOOKINGS } from "../store/tempBookingData";
 
 const ITEMS_PER_PAGE = 6;
 
-/** Tailwind + CSS variables from `index.css` (:root) — edit palette there only */
-const STATUS_BADGE_CLASS = {
-  Confirmed:
-    "bg-(--color-status-confirmed-bg) text-(--color-status-confirmed-text)",
-  Cancelled:
-    "bg-(--color-status-cancelled-bg) text-(--color-status-cancelled-text)",
-  Pending: "bg-(--color-status-pending-bg) text-(--color-status-pending-text)",
-} as const;
+type BookingStatusKey = "Confirmed" | "Pending" | "Cancelled";
 
-type BookingStatusKey = keyof typeof STATUS_BADGE_CLASS;
+const STATUS_STYLES: Record<BookingStatusKey, string> = {
+  Confirmed: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
+  Pending: "bg-amber-400/15 text-amber-700 dark:text-amber-400",
+  Cancelled: "bg-red-500/10 text-red-600 dark:text-red-400",
+};
 
-function PaymentProofIcon() {
+const DOT_STYLES: Record<BookingStatusKey, string> = {
+  Confirmed: "bg-emerald-500",
+  Pending: "bg-amber-500",
+  Cancelled: "bg-red-500",
+};
+
+function StatusBadge({ status }: { status: BookingStatusKey }) {
   return (
-    <div className="group flex flex-col items-center gap-0.5 cursor-pointer">
-      <div className="flex h-9 w-8 items-center justify-center overflow-hidden rounded-sm border border-(--color-input-border) bg-(--color-pill-idle-bg) transition-colors hover:bg-(--color-pill-idle-bg-hover)">
-        <svg
-          width="20"
-          height="24"
-          viewBox="0 0 20 24"
-          fill="none"
-          className="[&_rect]:stroke-(--color-text-muted-dark) [&_rect]:fill-(--color-border-dark) [&_line]:stroke-(--color-text-muted-dark) [&_polyline]:stroke-(--color-payment-proof-check)"
-        >
-          <rect x="1" y="1" width="18" height="22" rx="1" strokeWidth="1.2" />
-          <line x1="4" y1="6" x2="16" y2="6" strokeWidth="1" />
-          <line x1="4" y1="9" x2="16" y2="9" strokeWidth="1" />
-          <line x1="4" y1="12" x2="12" y2="12" strokeWidth="1" />
-          <polyline
-            points="10,16 13,19 18,13"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </svg>
-      </div>
-      <span className="text-[9px] leading-none text-(--color-text-muted-dark) transition-colors group-hover:text-(--color-text-secondary-dark)">
-        view
-      </span>
-    </div>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[status]}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${DOT_STYLES[status]}`} />
+      {status}
+    </span>
+  );
+}
+
+function PaymentProofBtn() {
+  return (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1.5 rounded border border-(--color-input-border) bg-(--color-border-dark)/40 px-2 py-1 text-[11px] text-(--color-text-secondary-dark) transition-colors hover:border-(--color-input-border-focus) hover:text-(--color-text-primary-dark)"
+    >
+      <svg
+        width="11"
+        height="11"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect x="3" y="3" width="13" height="16" rx="1" />
+        <line x1="6" y1="7" x2="14" y2="7" />
+        <line x1="6" y1="10" x2="14" y2="10" />
+        <polyline points="9,13 11,15 14,12" />
+      </svg>
+      View
+    </button>
   );
 }
 
@@ -197,10 +206,10 @@ export default function BookingPage() {
 
   const control =
     "rounded border border-(--color-input-border) bg-(--color-input-bg) px-3 py-1.5 text-sm text-(--color-input-text) outline-none transition focus:border-(--color-input-border-focus)";
-  const tdBase =
-    "border border-(--color-border-mid) px-4 py-3 text-center text-sm";
-  const rowHover =
-    "transition-colors hover:bg-[color-mix(in_srgb,var(--color-surface-panel-mid)_30%,transparent)]";
+  const tdClass =
+    "px-4 py-3 text-sm border-b border-(--color-border-dark)/60 align-middle";
+  const rowClass =
+    "transition-colors hover:bg-(--color-surface-panel-mid)/40 last:border-b-0";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden bg-(--color-surface-panel) p-5">
@@ -330,42 +339,46 @@ export default function BookingPage() {
           </thead>
           <tbody>
             {paginated.map((b) => (
-              <tr key={b.id} className={rowHover}>
-                <td className={`${tdBase} text-(--color-text-primary-dark)`}>
-                  {b.id}
+              <tr key={b.id} className={rowClass}>
+                <td className={tdClass}>
+                  <span className="font-mono text-xs text-(--color-text-secondary-dark)">
+                    {b.id}
+                  </span>
+                </td>
+                <td className={tdClass}>
+                  <span className="font-medium text-(--color-text-primary-dark)">
+                    {b.customer}
+                  </span>
+                </td>
+                <td className={tdClass}>
+                  <span className="block truncate text-(--color-text-secondary-dark)">
+                    {b.movie}
+                  </span>
+                </td>
+                <td className={tdClass}>
+                  <span className="whitespace-nowrap text-xs text-(--color-text-secondary-dark)">
+                    {b.showtime}
+                  </span>
                 </td>
                 <td
-                  className={`${tdBase} font-medium text-(--color-text-primary-dark)`}
+                  className={`${tdClass} text-center text-(--color-text-secondary-dark)`}
                 >
-                  {b.customer}
-                </td>
-                <td className={`${tdBase} text-(--color-text-secondary-dark)`}>
-                  {b.movie}
-                </td>
-                <td
-                  className={`${tdBase} whitespace-nowrap text-(--color-text-secondary-dark)`}
-                >
-                  {b.showtime}
-                </td>
-                <td className={`${tdBase} text-(--color-text-secondary-dark)`}>
                   {b.seats}
                 </td>
-                <td className={`${tdBase} text-(--color-text-secondary-dark)`}>
-                  ${b.amount.toFixed(2)}
-                </td>
-                <td className={tdBase}>
-                  {b.hasProof ? (
-                    <div className="flex justify-center">
-                      <PaymentProofIcon />
-                    </div>
-                  ) : null}
-                </td>
-                <td className={tdBase}>
-                  <span
-                    className={`rounded px-3 py-1 text-xs font-semibold ${STATUS_BADGE_CLASS[b.status as BookingStatusKey]}`}
-                  >
-                    {b.status}
+                <td className={`${tdClass} text-right`}>
+                  <span className="font-medium tabular-nums text-(--color-text-primary-dark)">
+                    ${b.amount.toFixed(2)}
                   </span>
+                </td>
+                <td className={`${tdClass} text-center`}>
+                  {b.hasProof ? (
+                    <PaymentProofBtn />
+                  ) : (
+                    <span className="text-(--color-text-muted-dark)">—</span>
+                  )}
+                </td>
+                <td className={tdClass}>
+                  <StatusBadge status={b.status as BookingStatusKey} />
                 </td>
               </tr>
             ))}
