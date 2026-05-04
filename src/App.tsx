@@ -8,7 +8,7 @@ import LoginPage from "./pages/Login";
 import { useAuthStore } from "./store/useAuth";
 import NotFound from "./pages/NotFound";
 import AdminPageLayout from "./components/AdminPageLayout";
-// test
+
 const AdminPagePlubishedRoutes = ({
   children,
 }: {
