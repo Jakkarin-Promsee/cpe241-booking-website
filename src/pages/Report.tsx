@@ -1,148 +1,140 @@
 import { useState } from "react";
 import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
   FILTERS,
   STATS,
   REVENUE_LINE,
-  BAR_DATA,
+  MONTHLY_REVENUE_K,
   REPORT_TYPES,
   FILTER_BY,
 } from "../store/tempReportdata";
 
-function LineChart() {
-  const W = 300,
-    H = 160;
-  const pad = { t: 12, r: 12, b: 20, l: 20 };
-  const cW = W - pad.l - pad.r;
-  const cH = H - pad.t - pad.b;
+function formatK(value: number | undefined) {
+  if (value == null || Number.isNaN(value)) return "—";
+  return `$${value.toLocaleString("en-US", {
+    minimumFractionDigits: value % 1 ? 1 : 0,
+    maximumFractionDigits: 1,
+  })}k`;
+}
 
-  const pts = REVENUE_LINE.map((d) => [
-    pad.l + (d.x / 100) * cW,
-    pad.t + (d.y / 100) * cH,
-  ]);
+const tooltipContentStyle = {
+  backgroundColor: "var(--color-surface-card)",
+  border: "1px solid var(--color-surface-card-border)",
+  borderRadius: "6px",
+  fontSize: "12px",
+} as const;
 
-  const linePath = pts
-    .map(
-      (p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`,
-    )
-    .join(" ");
-  const areaPath =
-    linePath +
-    ` L${pts[pts.length - 1][0]},${pad.t + cH} L${pts[0][0]},${pad.t + cH} Z`;
-
-  const gridStroke = "var(--color-chart-grid)";
-  const axisStroke = "var(--color-chart-axis)";
-  const areaFill = "var(--color-chart-area-fill)";
-  const lineStroke = "var(--color-chart-line)";
-
+function RevenueTrendChart() {
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
-      {/* Grid lines */}
-      {[0.25, 0.5, 0.75].map((f) => (
-        <line
-          key={f}
-          x1={pad.l}
-          x2={pad.l + cW}
-          y1={pad.t + f * cH}
-          y2={pad.t + f * cH}
-          stroke={gridStroke}
-          strokeWidth="1"
-        />
-      ))}
-      {/* Axes */}
-      <line
-        x1={pad.l}
-        y1={pad.t}
-        x2={pad.l}
-        y2={pad.t + cH}
-        stroke={axisStroke}
-        strokeWidth="1"
-      />
-      <line
-        x1={pad.l}
-        y1={pad.t + cH}
-        x2={pad.l + cW}
-        y2={pad.t + cH}
-        stroke={axisStroke}
-        strokeWidth="1"
-      />
-      {/* Area fill */}
-      <path d={areaPath} fill={areaFill} opacity="0.6" />
-      {/* Line */}
-      <path
-        d={linePath}
-        fill="none"
-        stroke={lineStroke}
-        strokeWidth="2"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </svg>
+    <div className="h-[200px] w-full min-w-0">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart
+          data={[...REVENUE_LINE]}
+          margin={{ top: 8, right: 12, left: 0, bottom: 4 }}
+        >
+          <CartesianGrid
+            stroke="var(--color-chart-grid)"
+            strokeDasharray="4 4"
+            vertical={false}
+          />
+          <XAxis
+            dataKey="day"
+            tick={{ fontSize: 11, fill: "var(--color-text-muted-light)" }}
+            tickLine={false}
+            axisLine={{ stroke: "var(--color-chart-axis)" }}
+          />
+          <YAxis
+            tick={{ fontSize: 11, fill: "var(--color-text-muted-light)" }}
+            tickLine={false}
+            axisLine={{ stroke: "var(--color-chart-axis)" }}
+            domain={[0, 100]}
+            width={40}
+            tickFormatter={(v) => `${v}k`}
+          />
+          <Tooltip
+            contentStyle={tooltipContentStyle}
+            labelFormatter={(day) => String(day)}
+            formatter={(value) => [
+              formatK(typeof value === "number" ? value : Number(value)),
+              "Gross",
+            ]}
+          />
+          <Area
+            type="monotone"
+            dataKey="revenueK"
+            stroke="var(--color-chart-line)"
+            strokeWidth={2}
+            fill="var(--color-chart-area-fill)"
+            fillOpacity={0.6}
+            dot={false}
+            activeDot={{ r: 4, fill: "var(--color-chart-line)" }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
-function BarChart() {
-  const W = 300,
-    H = 160;
-  const pad = { t: 12, r: 12, b: 20, l: 20 };
-  const cW = W - pad.l - pad.r;
-  const cH = H - pad.t - pad.b;
-  const barW = (cW / BAR_DATA.length) * 0.55;
-  const gap = cW / BAR_DATA.length;
-
-  const gridStroke = "var(--color-chart-grid)";
-  const axisStroke = "var(--color-chart-axis)";
-  const barFill = "var(--color-chart-bar-fill)";
-  const barTopFill = "var(--color-chart-bar-top)";
-
+function RevenueBarChart() {
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
-      {/* Grid lines */}
-      {[0.25, 0.5, 0.75].map((f) => (
-        <line
-          key={f}
-          x1={pad.l}
-          x2={pad.l + cW}
-          y1={pad.t + f * cH}
-          y2={pad.t + f * cH}
-          stroke={gridStroke}
-          strokeWidth="1"
-        />
-      ))}
-      {/* Axes */}
-      <line
-        x1={pad.l}
-        y1={pad.t}
-        x2={pad.l}
-        y2={pad.t + cH}
-        stroke={axisStroke}
-        strokeWidth="1"
-      />
-      <line
-        x1={pad.l}
-        y1={pad.t + cH}
-        x2={pad.l + cW}
-        y2={pad.t + cH}
-        stroke={axisStroke}
-        strokeWidth="1"
-      />
-      {/* Bars */}
-      {BAR_DATA.map((val, i) => {
-        const barH = (val / 100) * cH;
-        const x = pad.l + i * gap + (gap - barW) / 2;
-        const y = pad.t + cH - barH;
-        return (
-          <g key={i}>
-            <rect x={x} y={y} width={barW} height={barH} fill={barFill} rx="2" />
-            <rect x={x} y={y} width={barW} height={4} fill={barTopFill} rx="1" />
-          </g>
-        );
-      })}
-    </svg>
+    <div className="h-[200px] w-full min-w-0">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={[...MONTHLY_REVENUE_K]}
+          margin={{ top: 8, right: 12, left: 0, bottom: 4 }}
+          barCategoryGap="18%"
+        >
+          <CartesianGrid
+            stroke="var(--color-chart-grid)"
+            strokeDasharray="4 4"
+            vertical={false}
+          />
+          <XAxis
+            dataKey="month"
+            tick={{ fontSize: 11, fill: "var(--color-text-muted-light)" }}
+            tickLine={false}
+            axisLine={{ stroke: "var(--color-chart-axis)" }}
+          />
+          <YAxis
+            tick={{ fontSize: 11, fill: "var(--color-text-muted-light)" }}
+            tickLine={false}
+            axisLine={{ stroke: "var(--color-chart-axis)" }}
+            domain={[0, 320]}
+            width={44}
+            tickFormatter={(v) => `${v}k`}
+          />
+          <Tooltip
+            contentStyle={tooltipContentStyle}
+            formatter={(value) => [
+              formatK(typeof value === "number" ? value : Number(value)),
+              "Gross",
+            ]}
+          />
+          <Bar
+            dataKey="revenueK"
+            fill="var(--color-chart-bar-fill)"
+            radius={[2, 2, 0, 0]}
+            maxBarSize={40}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
 export default function ReportsPage() {
-  const [activeFilter, setActiveFilter] = useState("This Year");
+  const [activeFilter, setActiveFilter] =
+    useState<keyof typeof STATS>("This Year");
   const [reportType, setReportType] = useState("Sales, Inventory");
   const [filterBy, setFilterBy] = useState("");
 
@@ -159,7 +151,7 @@ export default function ReportsPage() {
           {FILTERS.map((f) => (
             <button
               key={f}
-              onClick={() => setActiveFilter(f)}
+              onClick={() => setActiveFilter(f as keyof typeof STATS)}
               className={`px-4 py-1.5 text-sm font-medium border-r border-(--color-filter-pill-border) last:border-r-0 transition-colors whitespace-nowrap ${
                 activeFilter === f
                   ? "bg-(--color-filter-pill-active-bg) text-(--color-filter-pill-active-text) font-semibold"
@@ -200,15 +192,15 @@ export default function ReportsPage() {
           <p className="text-sm font-bold mb-3 text-(--color-text-primary-light)">
             Daily Revenue Trend
           </p>
-          <LineChart />
+          <RevenueTrendChart />
         </div>
 
         {/* Bar chart */}
         <div className="rounded-lg px-5 py-4 border bg-(--color-surface-card) border-(--color-surface-card-border)">
           <p className="text-sm font-bold mb-3 text-(--color-text-primary-light)">
-            Daily Revenue Trend
+            Monthly Revenue (rolling year)
           </p>
-          <BarChart />
+          <RevenueBarChart />
         </div>
       </div>
 
