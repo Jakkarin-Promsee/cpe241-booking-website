@@ -11,6 +11,8 @@ function AdminPageLayout() {
   const bgColor =
     ADMIN_PATH_CONFIG.find((link) => link.path === path)?.colorSet?.bg ??
     "var(--color-surface-light)";
+  const adminTheme =
+    path === "/admin/" || path === "/admin/reports" ? "light" : "dark";
 
   return (
     <div className="flex h-screen overflow-hidden bg-(--color-admin-shell-bg)">
@@ -18,6 +20,7 @@ function AdminPageLayout() {
       <div className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden">
         <Topbar onLogout={() => logout()} />
         <div
+          data-admin-theme={adminTheme}
           className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5"
           style={{ backgroundColor: bgColor }}
         >
