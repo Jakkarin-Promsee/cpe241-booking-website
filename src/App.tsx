@@ -6,7 +6,7 @@ import BookingPage from "./pages/Booking";
 import ReportsPage from "./pages/Report";
 import LoginPage from "./pages/Login";
 import { useAuthStore } from "./store/useAuth";
-import NotFound from "./pages/NotFound";
+// import NotFound from "./pages/NotFound";
 import AdminPageLayout from "./components/AdminPageLayout";
 
 const AdminPagePlubishedRoutes = ({
@@ -61,7 +61,8 @@ export default function App() {
         <Route path="/admin/reports" element={<ReportsPage />} />
       </Route>
 
-      <Route path="*" element={<NotFound />} />
+      {/* <Route path="*" element={<NotFound />} /> */}
+      <Route path="*" element={<Navigate to="/admin/" replace />} />
     </Routes>
   );
 }
