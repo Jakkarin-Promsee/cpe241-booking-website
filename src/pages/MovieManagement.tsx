@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { DEFAULT_POSTER_URL, MOVIES } from "../store/tempMoiveData";
 import MovieFormModal from "../components/editModal/MovieFormModal";
 
@@ -45,7 +46,7 @@ function ActionButtons({
 }) {
   return (
     <div
-      className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 translate-x-1.5 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200"
+      className="absolute top-2 right-2 z-10 flex flex-col gap-1.5 rounded-lg bg-black/55 p-1.5 shadow-xl ring-1 ring-white/25 backdrop-blur-md opacity-0 translate-x-1.5 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Edit */}
@@ -53,7 +54,7 @@ function ActionButtons({
         type="button"
         title="Edit"
         onClick={onEdit}
-        className="w-8 h-8 rounded-full flex items-center justify-center bg-white/15 text-white hover:scale-110 transition-transform backdrop-blur-sm"
+        className="h-9 w-9 rounded-full flex items-center justify-center bg-white text-zinc-900 shadow-md ring-1 ring-black/10 hover:bg-zinc-100 hover:scale-105 active:scale-95 transition-transform"
       >
         <svg
           width="13"
@@ -73,7 +74,7 @@ function ActionButtons({
         type="button"
         title="Schedule Showtimes"
         onClick={onSchedule}
-        className="w-8 h-8 rounded-full flex items-center justify-center bg-white/12 text-white hover:scale-110 transition-transform backdrop-blur-sm"
+        className="h-9 w-9 rounded-full flex items-center justify-center bg-amber-400 text-amber-950 shadow-md ring-1 ring-amber-300/80 hover:bg-amber-300 hover:scale-105 active:scale-95 transition-transform"
       >
         <svg
           width="13"
@@ -95,7 +96,7 @@ function ActionButtons({
         type="button"
         title="Delete"
         onClick={onDelete}
-        className="w-8 h-8 rounded-full flex items-center justify-center bg-red-500/22 text-red-400 hover:scale-110 transition-transform backdrop-blur-sm"
+        className="h-9 w-9 rounded-full flex items-center justify-center bg-red-600 text-white shadow-md ring-1 ring-red-400/60 hover:bg-red-500 hover:scale-105 active:scale-95 transition-transform"
       >
         <svg
           width="13"
@@ -331,6 +332,7 @@ function Pagination({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function MovieManagementPage() {
+  const navigate = useNavigate();
   const [movies, setMovies] = useState<MovieListItem[]>(MOVIES);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -497,7 +499,7 @@ export default function MovieManagementPage() {
                     key={movie.id}
                     movie={movie}
                     onEdit={() => openEditMovie(movie)}
-                    onSchedule={() => console.log("Schedule", movie.id)}
+                    onSchedule={() => navigate("/admin/screens")}
                     onDelete={() => console.log("Delete", movie.id)}
                   />
                 ))}
