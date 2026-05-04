@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "./App.css";
 
 @layer base {
   :root {
@@ -32,6 +31,13 @@
     --color-topbar-dark-bg: #333739;
     --color-topbar-dark-border: #2b2f31;
     --color-topbar-dark-text: #ffffff;
+
+    /* Topbar logout icon hover (paired with light / dark topbar) */
+    --color-topbar-light-logout-hover: rgba(23, 23, 23, 0.08);
+    --color-topbar-dark-logout-hover: rgba(255, 255, 255, 0.12);
+
+    /* Admin shell: outer flex behind sidebar + column (peeks at edges) */
+    --color-admin-shell-bg: var(--color-surface-light);
 
     /* Sidebar */
     --color-sidebar-bg: #262626; /* neutral-800 */
@@ -108,9 +114,12 @@
     --color-status-pending-bg: #fef08a; /* yellow-200 */
     --color-status-pending-text: #854d0e; /* yellow-800 */
 
+    /* Payment proof thumbnail checkmark (Booking) */
+    --color-payment-proof-check: #6ee7b7;
+
     /* ─────────────────────────────────────────
        MOVIE SHOWTIME BLOCK COLORS (Timeline)
-       Mapped from MOVIE_COLORS in tempScreenData
+       Keys match MOVIE_PALETTE_KEY in tempScreenData
     ───────────────────────────────────────── */
 
     /* Add as many movies as needed — these mirror Tailwind bg- classes */
@@ -124,6 +133,15 @@
     --color-movie-d-text: #831843;
     --color-movie-e-bg: #e9d5ff; /* purple-200 */
     --color-movie-e-text: #4c1d95;
+    --color-movie-f-bg: #a7f3d0; /* teal-200 — sixth movie slot */
+    --color-movie-f-text: #134e4a; /* teal-900 */
+
+    /* Table / list row hover on dark panels (Screen, Movie tables) */
+    --color-table-row-hover: color-mix(
+      in srgb,
+      var(--color-surface-panel-mid) 30%,
+      transparent
+    );
 
     /* ─────────────────────────────────────────
        CHARTS  (Reports & Dashboard)
@@ -140,6 +158,7 @@
        LOGIN PAGE
     ───────────────────────────────────────── */
 
+    --color-login-page-bg-fallback: #1a1a1a; /* behind hero image while loading */
     --color-login-card-bg: #ffffff;
     --color-login-card-border: #171717; /* border-12 neutral-900 */
     --color-login-scrim: rgba(0, 0, 0, 0.4);
@@ -179,8 +198,9 @@
     --color-page-btn-border: #737373; /* neutral-500 */
     --color-page-btn-text: #d4d4d4; /* neutral-300 */
     --color-page-btn-bg-hover: #525252; /* neutral-600 */
-    --color-page-active-bg: #e5e5e5; /* neutral-200 */
-    --color-page-active-text: #171717; /* neutral-900 */
-    --color-page-active-border: #e5e5e5;
+    /* Current page: strong fg/bg separation on dark panels */
+    --color-page-active-bg: #ffffff;
+    --color-page-active-text: #262626; /* neutral-800 — dark but softer than black */
+    --color-page-active-border: #d4d4d4;
   }
 }
