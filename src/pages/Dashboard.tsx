@@ -1,7 +1,7 @@
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -46,7 +46,7 @@ function TrendChart() {
       </p>
       <div className="h-[200px] w-full min-w-0">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
+          <AreaChart
             data={TREND_DATA}
             margin={{ top: 8, right: 12, left: 0, bottom: 4 }}
           >
@@ -81,15 +81,17 @@ function TrendChart() {
                 "Volume (index)",
               ]}
             />
-            <Line
+            <Area
               type="monotone"
               dataKey="y"
               stroke="var(--color-chart-line)"
               strokeWidth={2}
+              fill="var(--color-chart-area-fill)"
+              fillOpacity={0.6}
               dot={false}
               activeDot={{ r: 4, fill: "var(--color-chart-line)" }}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>
