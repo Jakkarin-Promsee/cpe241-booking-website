@@ -9,11 +9,11 @@ function AdminPageLayout() {
 
   const path = resolveAdminPathKey(useLocation().pathname);
   const bgColor =
-    ADMIN_PATH_CONFIG.find((link) => link.path === path)?.colorSet?.bg ||
-    "#000000";
+    ADMIN_PATH_CONFIG.find((link) => link.path === path)?.colorSet?.bg ??
+    "var(--color-surface-light)";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-neutral-100">
+    <div className="flex h-screen overflow-hidden bg-(--color-admin-shell-bg)">
       <NavSidebar />
       <div className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden">
         <Topbar onLogout={() => logout()} />

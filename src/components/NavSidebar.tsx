@@ -4,20 +4,21 @@ import { ADMIN_PATH_CONFIG } from "./UrlPathConfig";
 const linkBase =
   "flex items-center gap-3 overflow-hidden border-l-4 px-3 py-4.5 text-sm whitespace-nowrap transition-colors select-none md:px-5";
 
+const navActive =
+  "border-(--color-sidebar-active-border) bg-(--color-sidebar-active-bg) font-semibold text-(--color-sidebar-active-text)";
+const navIdle =
+  "border-(--color-sidebar-idle-border) text-(--color-sidebar-idle-text) hover:bg-(--color-sidebar-active-bg) hover:text-(--color-text-primary-dark)";
+
 export default function NavSidebar() {
   return (
-    <aside className="flex h-full w-14 shrink-0 flex-col overflow-y-auto bg-neutral-800 transition-all duration-200 md:w-44 lg:w-56">
+    <aside className="flex h-full w-14 shrink-0 flex-col overflow-y-auto bg-(--color-sidebar-bg) transition-all duration-200 md:w-44 lg:w-56">
       {ADMIN_PATH_CONFIG.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}
           end={item.end}
           className={({ isActive }) =>
-            `${linkBase} ${
-              isActive
-                ? "border-neutral-400 bg-neutral-700 font-semibold text-white"
-                : "border-transparent text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200"
-            }`
+            `${linkBase} ${isActive ? navActive : navIdle}`
           }
         >
           {item.iconPath ? (

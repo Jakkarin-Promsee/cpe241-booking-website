@@ -7,17 +7,20 @@ export function resolveAdminPathKey(pathname: string): string {
   return pathname === "/admin" ? "/admin/" : pathname;
 }
 
+/** Maps to tokens in `src/index.css` — change palette there only. */
 const light_colorSet = {
-  titleColor: "#171717",
-  titleBorder: "#e5e5e5",
-  titleBg: "#cdd0d5",
-  bg: "#f3f4f8",
+  titleColor: "var(--color-topbar-light-text)",
+  titleBorder: "var(--color-topbar-light-border)",
+  titleBg: "var(--color-topbar-light-bg)",
+  bg: "var(--color-surface-light)",
+  logoutHoverBg: "var(--color-topbar-light-logout-hover)",
 };
 const dark_colorSet = {
-  titleColor: "#ffffff",
-  titleBorder: "#2b2f31",
-  titleBg: "#333739",
-  bg: "#545454",
+  titleColor: "var(--color-topbar-dark-text)",
+  titleBorder: "var(--color-topbar-dark-border)",
+  titleBg: "var(--color-topbar-dark-bg)",
+  bg: "var(--color-surface-dark)",
+  logoutHoverBg: "var(--color-topbar-dark-logout-hover)",
 };
 
 /** Resolved asset URLs for PNGs under `src/assets/navbar/`. */

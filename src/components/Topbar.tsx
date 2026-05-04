@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { useLocation } from "react-router-dom";
 import { ADMIN_PATH_CONFIG, resolveAdminPathKey } from "./UrlPathConfig";
 
@@ -6,15 +7,23 @@ function Topbar({ onLogout }: { onLogout: () => void }) {
   const entry = ADMIN_PATH_CONFIG.find((link) => link.path === path);
   const cs = entry?.colorSet;
 
-  const titleColor = cs?.titleColor ?? "#000000";
-  const titleBorder = cs?.titleBorder ?? "#000000";
-  const titleBg = cs?.titleBg ?? "#000000";
+  const titleColor = cs?.titleColor ?? "var(--color-topbar-light-text)";
+  const titleBorder = cs?.titleBorder ?? "var(--color-topbar-light-border)";
+  const titleBg = cs?.titleBg ?? "var(--color-topbar-light-bg)";
+  const logoutHoverBg =
+    cs?.logoutHoverBg ?? "var(--color-topbar-light-logout-hover)";
   const title = entry?.title ?? "Admin Management";
 
   return (
     <div
       className="flex items-center justify-between px-6 py-4 border-b shrink-0 gap-3"
-      style={{ borderColor: titleBorder, backgroundColor: titleBg }}
+      style={
+        {
+          borderColor: titleBorder,
+          backgroundColor: titleBg,
+          "--topbar-logout-hover": logoutHoverBg,
+        } as CSSProperties
+      }
     >
       <div
         className="flex min-w-0 items-center gap-2"
@@ -67,7 +76,7 @@ function Topbar({ onLogout }: { onLogout: () => void }) {
           type="button"
           aria-label="Log out"
           onClick={onLogout}
-          className="p-1 rounded hover:bg-neutral-300/80 transition-colors"
+          className="p-1 rounded transition-colors hover:bg-(--topbar-logout-hover)"
         >
           <svg
             width="18"
