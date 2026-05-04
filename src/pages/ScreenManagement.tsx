@@ -90,7 +90,7 @@ const HOURS = Array.from(
 
 const TOTAL_HOURS = HOUR_END - HOUR_START;
 const LABEL_COL_WIDTH = 80; // px
-const CELL_WIDTH = 80; // px per hour
+const CELL_WIDTH = 95; // px per hour
 /** Taller rows so the theater schedule timeline is easier to read */
 const TIMELINE_ROW_HEIGHT_PX = 88;
 
@@ -475,10 +475,7 @@ export default function ScreenManagementPage() {
 
       {/* Theater schedule (timeline) — flex-shrink-0 so it keeps full height */}
       <div className="shrink-0">
-        <TimelineGrid
-          showtimes={showtimes}
-          onEditShowtime={openEditShowtime}
-        />
+        <TimelineGrid showtimes={showtimes} onEditShowtime={openEditShowtime} />
       </div>
 
       {/* Detail table — full natural height; scroll the page, not a fixed table pane */}
