@@ -1,185 +1,263 @@
 # DatabaseWeb — Cinema Admin (Client)
 
-This repository folder contains the **frontend** for **DatabaseWeb**: a single-page **cinema / theater admin console** built with React. It provides dashboards, movie and screen management, booking lists, and reporting views. Business data is currently supplied by **static TypeScript modules** (`src/store/temp*.ts`) and **client-side auth**; there is **no API or database layer** in this workspace yet, so it works as a UI prototype or coursework shell ready to be wired to a backend.
+The **React frontend** for **DatabaseWeb**: a single-page **cinema / theater administration console**. Operators get a branded login, a unified shell with sidebar and top bar, and modules for dashboards, movies, screens and showtimes, bookings, and analytics-style reports.
+
+This client is designed as a **fully navigable UI** with **seed data in TypeScript** (`src/store/temp*.ts`) and **browser-only demo authentication**. There is **no API or database in this package** yet—ideal for coursework, demos, or as the shell you later connect to a real backend.
+
+---
+
+## Table of contents
+
+1. [Showcase — what we built](#showcase--what-we-built)
+2. [Tech stack](#tech-stack)
+3. [Prerequisites](#prerequisites)
+4. [Setup & scripts](#setup--scripts)
+5. [How to run and use the app](#how-to-run-and-use-the-app)
+6. [Project structure](#project-structure)
+7. [Feature guide (by page)](#feature-guide-by-page)
+8. [Configuration files](#configuration-files)
+9. [Production build & hosting](#production-build--hosting)
+10. [Extending toward a real backend](#extending-toward-a-real-backend)
+11. [Troubleshooting](#troubleshooting)
+12. [License / course context](#license--course-context)
+
+---
+
+## Showcase — what we built
+
+### At a glance
+
+| Highlight | Description |
+|-----------|-------------|
+| **Admin shell** | Consistent layout: navigation, contextual top bar colors, logout. |
+| **Dashboard** | KPI-style status cards, **Recharts** weekly booking trend, upcoming showtimes table. |
+| **Movies** | Paginated catalog, posters, genres, actions; add/edit via modal. |
+| **Screens** | Theater tabs, screen selection, **day timeline** (10:00–22:00) with showtime blocks; modal for scheduling. |
+| **Bookings** | Filterable, paginated booking table with status and payment-proof affordances. |
+| **Reports** | Filters, summary stats, **Recharts** area and bar charts from static datasets. |
+| **Auth (demo)** | Zustand + `localStorage` persistence; redirects protect `/admin/*` except login. |
+
+Styling uses **Tailwind CSS 4** with design tokens in `src/index.css` (e.g. `--color-topbar-light-bg`, `--color-surface-card`). **Navigation metadata** (paths, labels, titles, light/dark top bar sets, icons) lives in one place: `src/components/UrlPathConfig.ts`.
+
+### User journey (high level)
+
+```mermaid
+flowchart LR
+  A[Visitor] --> B{Has session?}
+  B -->|No| C["/admin/login"]
+  B -->|Yes| D["/admin/ ..."]
+  C -->|Valid demo creds| D
+  D --> E[Dashboard / Movies / Screens / Booking / Reports]
+  E --> F[Logout]
+  F --> C
+```
+
+### Screenshot placeholders
+
+Add your own images here when presenting the project (e.g. `docs/screenshots/dashboard.png`):
+
+- Login and 404 (shared visual language, background image).
+- Dashboard with cards and chart.
+- Movie management table and modal.
+- Screen management timeline.
+- Booking and reports.
 
 ---
 
 ## Tech stack
 
-| Area                | Choice                                             |
-| ------------------- | -------------------------------------------------- |
-| Runtime             | **Node.js** (for tooling; use a current LTS)       |
-| Framework           | **React 19**                                       |
-| Language            | **TypeScript** (~6.x)                              |
-| Build / dev         | **Vite 8**                                         |
-| Routing             | **React Router 7** (`BrowserRouter`)               |
-| Styling             | **Tailwind CSS 4** via `@tailwindcss/vite`         |
-| Global client state | **Zustand 5** (auth + `persist` to `localStorage`) |
+| Area | Choice |
+|------|--------|
+| Runtime (tooling) | **Node.js** 20+ recommended (current LTS) |
+| UI | **React 19** |
+| Language | **TypeScript** (~6.x) |
+| Build / dev | **Vite 8** |
+| Routing | **React Router 7** (`BrowserRouter` in `main.tsx`) |
+| Styling | **Tailwind CSS 4** via `@tailwindcss/vite` |
+| Charts | **Recharts 3** (Dashboard, Reports) |
+| Client state | **Zustand 5** (auth + `persist` to `localStorage`) |
 
-Path alias: `@/*` → `src/*` (see `vite.config.ts` and `tsconfig.app.json`).
+**Path alias:** `@/*` → `src/*` (see `vite.config.ts` and `tsconfig.app.json`).
 
 ---
 
 ## Prerequisites
 
-- **Node.js** 20+ recommended (Vite 8 and the toolchain expect a modern Node).
-- **npm** (comes with Node). The lockfile is `package-lock.json`.
+- **Node.js** 20+ (Vite 8 and the toolchain expect a modern Node).
+- **npm** (lockfile: `package-lock.json`).
 
 ---
 
-## Setup
+## Setup & scripts
 
-From the **client** directory:
+From the **`client`** directory:
 
 ```bash
 cd client
 npm install
 ```
 
-### Optional: login background image
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Vite dev server — default [http://localhost:5173](http://localhost:5173) |
+| `npm run build` | `tsc -b` then production bundle to `dist/` |
+| `npm run preview` | Serve the production build locally (smoke test) |
+| `npm run lint` | ESLint (`eslint.config.js`, flat config) |
 
-`Login.tsx` and `NotFound.tsx` import `@/assets/login_bg.png`. If that file is missing in your clone, add a PNG at `src/assets/login_bg.png` or adjust the imports; otherwise the dev server or build may error on unresolved assets.
+### Optional: assets
 
----
-
-## Scripts
-
-| Command           | Purpose                                                                         |
-| ----------------- | ------------------------------------------------------------------------------- |
-| `npm run dev`     | Start Vite dev server (default [http://localhost:5173](http://localhost:5173)). |
-| `npm run build`   | Typecheck (`tsc -b`) then production bundle to `dist/`.                         |
-| `npm run preview` | Serve the production build locally for smoke testing.                           |
-| `npm run lint`    | ESLint on the project (`eslint.config.js`, flat config).                        |
+- **`src/assets/login_bg.png`** — Used by `Login.tsx` and `NotFound.tsx`. If missing, add the file or change the imports.
+- **`src/assets/navbar/*.png`** — Sidebar icons; loaded via `import.meta.glob` in `UrlPathConfig.ts`.
 
 ---
 
-## How to use the app
+## How to run and use the app
 
-### Entry and router
+### Bootstrap
 
-- Bootstrap: `src/main.tsx` mounts the app inside `BrowserRouter` and loads `src/index.css` (Tailwind entry: `@import "tailwindcss";`).
-- Routes are defined in `src/App.tsx`.
+- **`src/main.tsx`** — `createRoot`, `StrictMode`, `BrowserRouter`, global `index.css`.
+- **`src/App.tsx`** — Route table and auth wrappers.
 
 ### URLs
 
-| Path                  | Behavior                                                        |
-| --------------------- | --------------------------------------------------------------- |
-| `/admin/login`        | Login screen. If already authenticated, redirects to `/admin/`. |
-| `/admin` or `/admin/` | Dashboard (nested under `AdminPageLayout`).                     |
-| `/admin/movies`       | Movie management.                                               |
-| `/admin/screens`      | Screen / showtime timeline management.                          |
-| `/admin/booking`      | Booking table with filters and pagination.                      |
-| `/admin/reports`      | Reports with charts and filter UI.                              |
-| Anything else         | `NotFound` (404) with links back to admin.                      |
+| Path | Behavior |
+|------|----------|
+| `/admin/login` | Login. If already authenticated → redirect to `/admin/`. |
+| `/admin` or `/admin/` | Dashboard (nested under `AdminPageLayout`). |
+| `/admin/movies` | Movie management. |
+| `/admin/screens` | Screen / showtime timeline. |
+| `/admin/booking` | Booking table (filters, pagination). |
+| `/admin/reports` | Reports (charts + filters). |
+| Anything else | `NotFound` (404) with links to admin and login. |
 
-`UrlPathConfig.ts` is the single place for admin nav labels, icons, titles, and per-route **background / topbar colors**. `resolveAdminPathKey()` normalizes `/admin` to `/admin/` so the dashboard config matches.
+`resolveAdminPathKey()` in `UrlPathConfig.ts` maps `/admin` → `/admin/` so the dashboard entry matches `ADMIN_PATH_CONFIG`.
 
-### Authentication (demo only)
+### Authentication (demonstration only)
 
-- Implemented in `src/store/useAuth.ts` with Zustand + `persist`.
-- **Not** a real server login: credentials are checked in the browser after a short simulated delay.
-- Persisted key: `cinema-admin-auth` (only `authed` is stored).
+- **Store:** `src/store/useAuth.ts` (Zustand + `persist`).
+- **Not a real server login** — credentials are checked in the browser after a short delay.
+- **Storage key:** `cinema-admin-auth` (only `authed` is persisted).
 
 Demo accounts (change in `useAuth.ts` for your environment):
 
 - `test` / `test`
 - `admin@cinema.com` / `admin123`
 
-Protected routes use `AdminProtectedRoute`; the login route uses `AdminPagePlubishedRoutes` (typo in source: “Plubished”) to bounce authenticated users away from the login page. **Do not use these patterns in production** without a real auth API, HTTPS, and secure session or token handling.
+**Wrappers in `App.tsx`:**
+
+- `AdminProtectedRoute` — Unauthenticated users → `/admin/login`.
+- `AdminPagePlubishedRoutes` (name as in source) — Authenticated users visiting login → `/admin/`.
+
+For production, replace with a real API, HTTPS, and secure sessions or tokens.
 
 ### Layout
 
-- `AdminPageLayout`: sidebar (`NavSidebar`), `Topbar` (title from config, logout), and `<Outlet />` for child routes.
-- Logout clears `authed` in the store (persist middleware updates `localStorage`).
+- **`AdminPageLayout`** — `NavSidebar`, `Topbar` (title from config, logout), `<Outlet />` for child routes.
+- **Logout** sets `authed: false` (persist updates `localStorage`).
 
 ---
 
-## Project structure (src)
+## Project structure
 
 ```
-src/
-  main.tsx                 # React root + BrowserRouter
-  App.tsx                  # Route definitions and auth wrappers
-  index.css                # Tailwind import
-  assets/                  # Static images / vectors used by UI
-  components/
-    AdminPageLayout.tsx    # Shell for all /admin/* pages (except login)
-    NavSidebar.tsx         # Nav links from ADMIN_Path_CONFIG
-    Topbar.tsx             # Page title + logout
-    UrlPathConfig.ts       # Admin paths, titles, color sets
-    editModal/
-      MovieFormModal.tsx   # Add/edit movie form (modal)
-      ScreenFormModal.tsx  # Add/edit showtime form (modal)
-  pages/
-    Login.tsx
-    Dashboard.tsx
-    MovieManagement.tsx
-    ScreenManagement.tsx
-    Booking.tsx
-    Report.tsx
-    NotFound.tsx
-  store/
-    useAuth.ts             # Zustand auth store
-    tempDashboardData.ts   # Static dashboard metrics / chart points
-    tempBookingData.ts     # Static booking rows
-    tempReportdata.ts      # Static report filters / stats / chart data
-    tempMoiveData.ts       # Static movie list (filename spelling: Moive)
-    tempScreenData.ts      # Theaters, screens, showtimes seed data
+client/
+  index.html
+  vite.config.ts
+  eslint.config.js
+  tsconfig.json
+  tsconfig.app.json
+  tsconfig.node.json
+  package.json
+  src/
+    main.tsx                 # Entry + BrowserRouter
+    App.tsx                  # Routes + auth gates
+    index.css                # Tailwind + CSS variables
+    assets/                  # Images (login bg, navbar icons, etc.)
+    components/
+      AdminPageLayout.tsx    # Shell for /admin/* (except login)
+      NavSidebar.tsx
+      Topbar.tsx
+      UrlPathConfig.ts       # Paths, titles, colors, icons
+      editModal/
+        MovieFormModal.tsx
+        ScreenFormModal.tsx
+    pages/
+      Login.tsx
+      Dashboard.tsx
+      MovieManagement.tsx
+      ScreenManagement.tsx
+      Booking.tsx
+      Report.tsx
+      NotFound.tsx
+      moveInspire.tsx        # Alternate / unused movie UI (not routed in App.tsx)
+    store/
+      useAuth.ts
+      tempDashboardData.ts
+      tempBookingData.ts
+      tempReportdata.ts
+      tempMoiveData.ts       # Note: filename spelling "Moive"
+      tempScreenData.ts
 ```
 
 ---
 
-## Feature overview (by page)
+## Feature guide (by page)
 
-- **Dashboard** — Status cards, a simple SVG line chart (“Weekly Booking Trend”), and an “Upcoming Showtimes” table (placeholder bars in some cells). Data: `tempDashboardData.ts`.
-- **Movie management** — Paginated table of movies (title, genre, duration, status), poster placeholder, actions (edit / schedule / delete). Add/edit uses `MovieFormModal`. List source: `tempMoiveData.ts`; in-memory updates are local to the page component pattern (not a global store).
-- **Screen management** — Theater tabs, screen dropdown, **day timeline** (10:00–22:00) with colored showtime blocks, add/edit via `ScreenFormModal` (movie, language, format, screen, date, times, seat plan/price). Seed data and colors: `tempScreenData.ts`.
-- **Booking** — Status filters, payment-proof affordance, paginated table. Data: `tempBookingData.ts`.
-- **Reports** — Time-range filters, summary stats, line and bar charts (SVG), report type and “filter by” controls. Data: `tempReportdata.ts`.
-- **Login** — Full-screen branded card over background image.
-- **404** — Same visual language as login; links to `/admin/` and `/admin/login`.
+- **Dashboard** — Status cards; **Recharts** line chart (“Weekly Booking Trend”); “Upcoming Showtimes” table. Data: `tempDashboardData.ts`.
+- **Movie management** — Paginated table (title, genre, duration, status), poster column, actions (edit / schedule / delete). **MovieFormModal** for add/edit. Seed: `tempMoiveData.ts`; list updates follow the in-page pattern (not a global entity store).
+- **Screen management** — Theater tabs, screen dropdown, **timeline** 10:00–22:00 with colored blocks; **ScreenFormModal** (movie, language, format, screen, date, time, seat/price). Data: `tempScreenData.ts`.
+- **Booking** — Status filters, paginated table, payment-proof column. Data: `tempBookingData.ts`.
+- **Reports** — Time range and report-type controls, summary stats, **Recharts** area and bar charts. Data: `tempReportdata.ts`.
+- **Login** — Full-screen card on background image.
+- **404** — Same visual language; links to `/admin/` and `/admin/login`.
+- **`moveInspire.tsx`** — Not registered in `App.tsx`; keep as a reference or wire a route if you want that layout in the app.
 
 ---
 
 ## Configuration files
 
-- **`vite.config.ts`** — React plugin, Tailwind Vite plugin, `@` alias to `./src`.
-- **`tsconfig.json`** — Project references to `tsconfig.app.json` (app) and `tsconfig.node.json` (Vite config).
-- **`tsconfig.app.json`** — `ES2023`, `DOM`, strict unused checks, `paths` for `@/*`.
-- **`eslint.config.js`** — TypeScript ESLint, React Hooks, React Refresh for Vite.
-- **`index.html`** — Root `<div id="root">` and document title (currently generic `"client"`; you can rename for production).
+| File | Role |
+|------|------|
+| `vite.config.ts` | React plugin, Tailwind Vite plugin, `@` → `./src` |
+| `tsconfig.json` | References `tsconfig.app.json` and `tsconfig.node.json` |
+| `tsconfig.app.json` | `ES2023`, DOM, strict checks, `paths` for `@/*` |
+| `eslint.config.js` | TypeScript ESLint, React Hooks, React Refresh |
+| `index.html` | Root `#root`, favicon, document title (currently `client` — rename for production if you like) |
 
 ---
 
-## Building for production
+## Production build & hosting
 
 ```bash
 npm run build
 ```
 
-Output goes to **`dist/`**. Deploy `dist` as static files behind any static host or CDN. Because the app uses **`BrowserRouter`**, the host must **rewrite unknown paths to `index.html`** (SPA fallback) so deep links like `/admin/movies` load correctly.
+Output: **`dist/`**. Deploy as static files. Because the app uses **`BrowserRouter`**, configure the host to **rewrite unknown paths to `index.html`** (SPA fallback) so deep links like `/admin/movies` work on refresh.
 
 ---
 
-## Extending toward a real “DatabaseWeb”
+## Extending toward a real backend
 
-Today, persistence is **in-memory or static imports** except auth’s `authed` flag. A typical next step would be:
+Today, most data is **static imports** or **in-memory**; only the auth `authed` flag persists locally. Typical next steps:
 
-1. Add a backend (REST, GraphQL, or RPC) and database.
-2. Replace `temp*.ts` with `fetch`/client SDK calls and optional Zustand or React Query for server state.
-3. Replace `useAuth` with token/cookie-based login against your API.
-4. Add environment-based API base URLs (`import.meta.env.VITE_*` in Vite).
+1. Add a backend (REST, GraphQL, or RPC) and a database.
+2. Replace `temp*.ts` usage with `fetch` or a generated client; consider **TanStack Query** or similar for server state.
+3. Replace `useAuth` with token- or cookie-based login against your API.
+4. Add **`import.meta.env.VITE_*`** variables for API base URLs and environment-specific settings.
 
 ---
 
 ## Troubleshooting
 
-- **`npm install` fails** — Use a current Node LTS; delete `node_modules` and retry if the lockfile was generated on another OS/arch.
-- **Missing `login_bg.png`** — Add the asset or remove/replace the background `url()` in `Login.tsx` / `NotFound.tsx`.
-- **Blank page on refresh at `/admin/...`** — Configure SPA history fallback on your static server.
+| Issue | What to try |
+|-------|-------------|
+| `npm install` fails | Use Node 20+; delete `node_modules` and reinstall if the lockfile came from another OS/arch. |
+| Missing `login_bg.png` | Add `src/assets/login_bg.png` or update `Login.tsx` / `NotFound.tsx` imports. |
+| Blank page on refresh at `/admin/...` | Enable SPA history fallback on your static server. |
+| Wrong sidebar icon | Ensure `src/assets/navbar/<name>.png` exists; names must match `UrlPathConfig.ts`. |
 
 ---
 
 ## License / course context
 
-No license file is present in this folder; treat as private or course work unless your instructor or team specifies otherwise.
+No license file is included in this folder by default; treat as private or course work unless your team or instructor specifies otherwise.
