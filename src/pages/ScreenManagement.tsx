@@ -91,19 +91,27 @@ const HOURS = Array.from(
 const TOTAL_HOURS = HOUR_END - HOUR_START;
 const LABEL_COL_WIDTH = 80; // px
 const CELL_WIDTH = 80; // px per hour
+/** Taller rows so the theater schedule timeline is easier to read */
+const TIMELINE_ROW_HEIGHT_PX = 88;
 
 function toPercent(hour: number) {
   return ((hour - HOUR_START) / TOTAL_HOURS) * 100;
 }
 
-function ShowtimeBlock({ showtime }: { showtime: ShowtimeRow }) {
+function ShowtimeBlock({
+  showtime,
+  onEdit,
+}: {
+  showtime: ShowtimeRow;
+  onEdit: (s: ShowtimeRow) => void;
+}) {
   const leftPct = toPercent(showtime.startHour);
   const widthPct = (showtime.durationMin / 60 / TOTAL_HOURS) * 100;
   const paletteKey = MOVIE_PALETTE_KEY[showtime.movie] ?? "a";
 
   return (
     <div
-      className="absolute top-1 bottom-1 rounded-md px-2 py-1 flex flex-col justify-center overflow-hidden cursor-pointer select-none hover:brightness-95 transition-all"
+      className="absolute top-1 bottom-1 rounded-md px-2 py-1 flex flex-col justify-center overflow-hidden select-none hover:brightness-95 transition-all"
       style={{
         left: `${leftPct}%`,
         width: `${widthPct}%`,
@@ -112,17 +120,47 @@ function ShowtimeBlock({ showtime }: { showtime: ShowtimeRow }) {
       }}
       title={`${showtime.movie} — ${showtime.durationMin} min`}
     >
-      <p className="text-xs font-bold leading-tight truncate">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit(showtime);
+        }}
+        className="absolute top-0.5 right-0.5 z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 hover:bg-black/45 text-current"
+        title="Edit showtime"
+        aria-label="Edit showtime"
+      >
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          className="opacity-95"
+        >
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      </button>
+      <p className="text-xs font-bold leading-tight truncate pr-5">
         {showtime.movie}
       </p>
-      <p className="text-[10px] leading-tight opacity-80">
+      <p className="text-[10px] leading-tight opacity-80 pr-5">
         {showtime.durationMin} min
       </p>
     </div>
   );
 }
 
-function TimelineGrid({ showtimes }: { showtimes: ShowtimeRow[] }) {
+function TimelineGrid({
+  showtimes,
+  onEditShowtime,
+}: {
+  showtimes: ShowtimeRow[];
+  onEditShowtime: (s: ShowtimeRow) => void;
+}) {
   return (
     <div className="overflow-x-auto rounded-lg border border-(--color-border-dark)">
       <div style={{ minWidth: LABEL_COL_WIDTH + CELL_WIDTH * TOTAL_HOURS }}>
@@ -147,7 +185,7 @@ function TimelineGrid({ showtimes }: { showtimes: ShowtimeRow[] }) {
             <div
               key={screen}
               className="flex border-b border-(--color-border-mid) last:border-b-0"
-              style={{ height: 64 }}
+              style={{ height: TIMELINE_ROW_HEIGHT_PX }}
             >
               {/* Screen label */}
               <div
@@ -169,7 +207,11 @@ function TimelineGrid({ showtimes }: { showtimes: ShowtimeRow[] }) {
                 ))}
                 {/* Showtime blocks */}
                 {rowShowtimes.map((s) => (
-                  <ShowtimeBlock key={s.id} showtime={s} />
+                  <ShowtimeBlock
+                    key={s.id}
+                    showtime={s}
+                    onEdit={onEditShowtime}
+                  />
                 ))}
               </div>
             </div>
@@ -242,15 +284,17 @@ function ShowtimesTable({
                   {s.status}
                 </td>
                 <td className="px-4 py-3 border border-(--color-border-mid)">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
+                      title="Edit"
+                      aria-label="Edit showtime"
                       onClick={() => onEdit(s)}
-                      className="flex flex-col items-center gap-0.5 px-2 py-1 rounded transition-colors group hover:bg-(--color-pill-idle-bg-hover)"
+                      className="group inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-(--color-pill-idle-bg-hover)"
                     >
                       <svg
-                        width="13"
-                        height="13"
+                        width="18"
+                        height="18"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -261,17 +305,17 @@ function ShowtimesTable({
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
-                      <span className="text-[10px] text-(--color-text-muted-dark) group-hover:text-(--color-text-primary-dark)">
-                        Edit
-                      </span>
                     </button>
                     <button
+                      type="button"
+                      title="Delete"
+                      aria-label="Delete showtime"
                       onClick={() => onDelete(s.id)}
-                      className="flex flex-col items-center gap-0.5 px-2 py-1 rounded transition-colors group hover:bg-(--color-danger-bg-hover)"
+                      className="group inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-(--color-danger-bg-hover)"
                     >
                       <svg
-                        width="13"
-                        height="13"
+                        width="18"
+                        height="18"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -284,9 +328,6 @@ function ShowtimesTable({
                         <path d="M10 11v6M14 11v6" />
                         <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
                       </svg>
-                      <span className="text-[10px] text-(--color-text-muted-dark) group-hover:text-(--color-danger-text-hover)">
-                        Delete
-                      </span>
                     </button>
                   </div>
                 </td>
@@ -364,7 +405,7 @@ export default function ScreenManagementPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-(--color-surface-panel) p-5 gap-5">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto bg-(--color-surface-panel) p-5">
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* Theater selector */}
@@ -432,15 +473,22 @@ export default function ScreenManagementPage() {
         </button>
       </div>
 
-      {/* Timeline */}
-      <TimelineGrid showtimes={showtimes} />
+      {/* Theater schedule (timeline) — flex-shrink-0 so it keeps full height */}
+      <div className="shrink-0">
+        <TimelineGrid
+          showtimes={showtimes}
+          onEditShowtime={openEditShowtime}
+        />
+      </div>
 
-      {/* Table */}
-      <ShowtimesTable
-        showtimes={showtimes}
-        onDelete={handleDelete}
-        onEdit={openEditShowtime}
-      />
+      {/* Detail table — full natural height; scroll the page, not a fixed table pane */}
+      <div className="shrink-0">
+        <ShowtimesTable
+          showtimes={showtimes}
+          onDelete={handleDelete}
+          onEdit={openEditShowtime}
+        />
+      </div>
 
       <ScreenFormModal
         key={`${editingShowtime?.id ?? "new"}-${showtimeFormKey}`}
