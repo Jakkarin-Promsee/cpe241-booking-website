@@ -21,10 +21,12 @@ function AdminPageLayout() {
         <Topbar onLogout={() => logout()} />
         <div
           data-admin-theme={adminTheme}
-          className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5"
+          className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-5"
           style={{ backgroundColor: bgColor }}
         >
-          <Outlet />
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <Outlet />
+          </div>
         </div>
       </div>
     </div>

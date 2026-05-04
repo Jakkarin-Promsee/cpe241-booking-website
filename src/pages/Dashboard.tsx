@@ -168,10 +168,10 @@ function ShowtimesTable() {
 
 export default function DashboardPage() {
   return (
-    <>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto">
       <StatusCards />
       <TrendChart />
       <ShowtimesTable />
-    </>
+    </div>
   );
 }
