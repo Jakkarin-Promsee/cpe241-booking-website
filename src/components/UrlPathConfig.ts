@@ -20,7 +20,7 @@ const dark_colorSet = {
   bg: "#545454",
 };
 
-export const ADMIN_Path_CONFIG = [
+export const ADMIN_PATH_CONFIG = [
   {
     path: "/admin/",
     colorSet: light_colorSet,

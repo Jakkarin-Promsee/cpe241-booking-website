@@ -2,14 +2,14 @@ import { useAuthStore } from "@/store/useAuth";
 import NavSidebar from "./NavSidebar";
 import Topbar from "./Topbar";
 import { Outlet, useLocation } from "react-router-dom";
-import { ADMIN_Path_CONFIG, resolveAdminPathKey } from "./UrlPathConfig";
+import { ADMIN_PATH_CONFIG, resolveAdminPathKey } from "./UrlPathConfig";
 
 function AdminPageLayout() {
   const logout = useAuthStore((s) => s.logout);
 
   const path = resolveAdminPathKey(useLocation().pathname);
   const bgColor =
-    ADMIN_Path_CONFIG.find((link) => link.path === path)?.colorSet?.bg ||
+    ADMIN_PATH_CONFIG.find((link) => link.path === path)?.colorSet?.bg ||
     "#000000";
 
   return (

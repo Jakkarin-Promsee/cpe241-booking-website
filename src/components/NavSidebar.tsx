@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { ADMIN_Path_CONFIG } from "./UrlPathConfig";
+import { ADMIN_PATH_CONFIG } from "./UrlPathConfig";
 
 const linkBase =
   "flex items-center gap-3 overflow-hidden border-l-4 px-3 py-4.5 text-sm whitespace-nowrap transition-colors select-none md:px-5";
@@ -7,7 +7,7 @@ const linkBase =
 export default function NavSidebar() {
   return (
     <aside className="flex h-full w-14 shrink-0 flex-col overflow-y-auto bg-neutral-800 transition-all duration-200 md:w-44 lg:w-56">
-      {ADMIN_Path_CONFIG.map((item) => (
+      {ADMIN_PATH_CONFIG.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}

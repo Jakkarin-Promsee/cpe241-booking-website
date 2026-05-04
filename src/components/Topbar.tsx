@@ -1,9 +1,9 @@
 import { useLocation } from "react-router-dom";
-import { ADMIN_Path_CONFIG, resolveAdminPathKey } from "./UrlPathConfig";
+import { ADMIN_PATH_CONFIG, resolveAdminPathKey } from "./UrlPathConfig";
 
 function Topbar({ onLogout }: { onLogout: () => void }) {
   const path = resolveAdminPathKey(useLocation().pathname);
-  const entry = ADMIN_Path_CONFIG.find((link) => link.path === path);
+  const entry = ADMIN_PATH_CONFIG.find((link) => link.path === path);
   const cs = entry?.colorSet;
 
   const titleColor = cs?.titleColor ?? "#000000";
