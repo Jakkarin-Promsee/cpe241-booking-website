@@ -59,7 +59,7 @@ export const ADMIN_PATH_CONFIG = [
     colorSet: dark_colorSet,
     label: "Screen Management",
     title: "Screen Management",
-    iconPath: iconPath("screen"),
+    iconPath: iconPath("screenc"),
     end: false,
   },
   {
