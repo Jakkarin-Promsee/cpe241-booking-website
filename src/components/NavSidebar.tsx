@@ -20,7 +20,17 @@ export default function NavSidebar() {
             }`
           }
         >
-          <span className="shrink-0 text-base">{item.icon}</span>
+          {item.iconPath ? (
+            <img
+              src={item.iconPath}
+              alt=""
+              className="h-5 w-5 shrink-0 object-contain"
+              width={20}
+              height={20}
+            />
+          ) : (
+            <span className="h-5 w-5 shrink-0" aria-hidden />
+          )}
           <span className="hidden md:inline">{item.label}</span>
         </NavLink>
       ))}

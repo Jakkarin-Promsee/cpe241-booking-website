@@ -20,13 +20,27 @@ const dark_colorSet = {
   bg: "#545454",
 };
 
+/** Resolved asset URLs for PNGs under `src/assets/navbar/`. */
+const iconModules = import.meta.glob<string>("../assets/navbar/*.png", {
+  eager: true,
+  import: "default",
+});
+
+function iconPath(name: string): string {
+  const suffix = `/${name}.png`;
+  for (const [path, url] of Object.entries(iconModules)) {
+    if (path.replace(/\\/g, "/").endsWith(suffix)) return url;
+  }
+  return "";
+}
+
 export const ADMIN_PATH_CONFIG = [
   {
     path: "/admin/",
     colorSet: light_colorSet,
     title: " Admin Dashboard",
     label: "Dashboard",
-    icon: "📊",
+    iconPath: iconPath("dashboard"),
     end: true,
   },
   {
@@ -34,7 +48,7 @@ export const ADMIN_PATH_CONFIG = [
     colorSet: dark_colorSet,
     title: "Movie management",
     label: "Movie management",
-    icon: "🎬",
+    iconPath: iconPath("movie"),
     end: false,
   },
   {
@@ -42,7 +56,7 @@ export const ADMIN_PATH_CONFIG = [
     colorSet: dark_colorSet,
     label: "Screen Management",
     title: "Screen Management",
-    icon: "🖥️",
+    iconPath: iconPath("screen"),
     end: false,
   },
   {
@@ -50,7 +64,7 @@ export const ADMIN_PATH_CONFIG = [
     colorSet: dark_colorSet,
     title: "Booking",
     label: "Booking",
-    icon: "📋",
+    iconPath: iconPath("booking"),
     end: false,
   },
   {
@@ -58,7 +72,7 @@ export const ADMIN_PATH_CONFIG = [
     colorSet: light_colorSet,
     title: "Reports",
     label: "Reports",
-    icon: "📁",
+    iconPath: iconPath("report"),
     end: false,
   },
 ] as const;
