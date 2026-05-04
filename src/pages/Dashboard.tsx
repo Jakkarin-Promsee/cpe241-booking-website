@@ -1,4 +1,13 @@
 import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
   STATUS_CARDS,
   TREND_DATA,
   SHOWTIMES,
@@ -30,65 +39,59 @@ function StatusCards() {
 }
 
 function TrendChart() {
-  const W = 560,
-    H = 150;
-  const pad = { t: 12, r: 16, b: 12, l: 16 };
-  const cW = W - pad.l - pad.r;
-  const cH = H - pad.t - pad.b;
-
-  const pts = TREND_DATA.map((d) => [
-    pad.l + (d.x / 100) * cW,
-    pad.t + ((100 - d.y) / 100) * cH,
-  ]);
-
-  const linePath = pts
-    .map(
-      (p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`,
-    )
-    .join(" ");
-
   return (
     <div className="rounded-md border border-(--color-surface-card-border) bg-(--color-surface-card) px-5 py-4">
       <p className="mb-3 text-sm font-semibold text-(--color-text-primary-light)">
         Weekly Booking Trend
       </p>
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
-        {[0.25, 0.5, 0.75].map((f) => (
-          <line
-            key={f}
-            x1={pad.l}
-            x2={pad.l + cW}
-            y1={pad.t + f * cH}
-            y2={pad.t + f * cH}
-            stroke="var(--color-chart-grid)"
-            strokeWidth="1"
-          />
-        ))}
-        <line
-          x1={pad.l}
-          y1={pad.t}
-          x2={pad.l}
-          y2={pad.t + cH}
-          stroke="var(--color-chart-axis)"
-          strokeWidth="1"
-        />
-        <line
-          x1={pad.l}
-          y1={pad.t + cH}
-          x2={pad.l + cW}
-          y2={pad.t + cH}
-          stroke="var(--color-chart-axis)"
-          strokeWidth="1"
-        />
-        <path
-          d={linePath}
-          fill="none"
-          stroke="var(--color-chart-line)"
-          strokeWidth="2"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      </svg>
+      <div className="h-[200px] w-full min-w-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={TREND_DATA}
+            margin={{ top: 8, right: 12, left: 0, bottom: 4 }}
+          >
+            <CartesianGrid
+              stroke="var(--color-chart-grid)"
+              strokeDasharray="4 4"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="x"
+              tick={{ fontSize: 11, fill: "var(--color-text-muted-light)" }}
+              tickLine={false}
+              axisLine={{ stroke: "var(--color-chart-axis)" }}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: "var(--color-text-muted-light)" }}
+              tickLine={false}
+              axisLine={{ stroke: "var(--color-chart-axis)" }}
+              domain={[0, 100]}
+              width={36}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "var(--color-surface-card)",
+                border: "1px solid var(--color-surface-card-border)",
+                borderRadius: "6px",
+                fontSize: "12px",
+              }}
+              labelFormatter={(day) => String(day)}
+              formatter={(value) => [
+                value != null ? String(value) : "",
+                "Volume (index)",
+              ]}
+            />
+            <Line
+              type="monotone"
+              dataKey="y"
+              stroke="var(--color-chart-line)"
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4, fill: "var(--color-chart-line)" }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
@@ -114,30 +117,48 @@ function ShowtimesTable() {
             </tr>
           </thead>
           <tbody>
-            {SHOWTIMES.map((row, i) => (
-              <tr
-                key={i}
-                className={
-                  i % 2 === 0
-                    ? "bg-(--color-surface-light)"
-                    : "bg-(--color-surface-card)"
-                }
-              >
-                {[row.movie, row.screen, row.time, row.seats].map((_, j) => (
-                  <td
-                    key={j}
-                    className="border border-(--color-border-light) px-3 py-2.5"
-                  >
-                    <div
-                      className="h-3 rounded bg-(--color-chart-bar-fill)"
-                      style={{
-                        width: j === 3 ? 40 : j === 2 ? 70 : j === 1 ? 60 : 100,
-                      }}
-                    />
+            {SHOWTIMES.map((row, i) => {
+              const pct = Math.min(
+                100,
+                Math.round((row.sold / row.capacity) * 100),
+              );
+              return (
+                <tr
+                  key={`${row.movie}-${row.time}-${row.screen}`}
+                  className={
+                    i % 2 === 0
+                      ? "bg-(--color-surface-light)"
+                      : "bg-(--color-surface-card)"
+                  }
+                >
+                  <td className="border border-(--color-border-light) px-3 py-2.5 text-sm font-medium text-(--color-text-primary-light)">
+                    {row.movie}
                   </td>
-                ))}
-              </tr>
-            ))}
+                  <td className="border border-(--color-border-light) px-3 py-2.5 text-sm text-(--color-text-secondary-light)">
+                    {row.screen}
+                  </td>
+                  <td className="border border-(--color-border-light) px-3 py-2.5 font-mono text-sm text-(--color-text-secondary-light) tabular-nums">
+                    {row.time}
+                  </td>
+                  <td className="border border-(--color-border-light) px-3 py-2.5">
+                    <div className="flex min-w-[140px] flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                      <span className="shrink-0 font-mono text-sm tabular-nums text-(--color-text-primary-light)">
+                        {row.sold} / {row.capacity}
+                        <span className="ml-1.5 text-xs font-normal text-(--color-text-muted-light)">
+                          ({pct}%)
+                        </span>
+                      </span>
+                      <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-(--color-chart-area-fill)">
+                        <div
+                          className="h-full rounded-full bg-(--color-chart-bar-fill)"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
