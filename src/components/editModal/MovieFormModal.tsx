@@ -1,6 +1,27 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 
-function MovieFormModal({ isOpen, onClose, onSave, initialData = null }) {
+export type MovieFormValues = {
+  title: string;
+  genre: string;
+  duration: string | number;
+  description: string;
+  releaseDate: string;
+  poster?: File | null;
+};
+
+type MovieFormModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: MovieFormValues) => void;
+  initialData?: MovieFormValues | null;
+};
+
+function MovieFormModal({
+  isOpen,
+  onClose,
+  onSave,
+  initialData = null,
+}: MovieFormModalProps) {
   const [form, setForm] = useState({
     title: initialData?.title || "",
     genre: initialData?.genre || "",
@@ -10,16 +31,17 @@ function MovieFormModal({ isOpen, onClose, onSave, initialData = null }) {
     poster: initialData?.poster || null,
   });
 
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!isOpen) return null;
 
-  const handleChange = (field) => (e) => {
+  const handleChange =
+    (field: keyof typeof form) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) setForm((prev) => ({ ...prev, poster: file }));
   };
 
