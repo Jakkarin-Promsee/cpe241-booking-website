@@ -417,7 +417,7 @@ export default function BookingPage() {
                       </td>
                       <td className={`${tdClass} text-right`}>
                         <span className="font-medium tabular-nums text-(--color-text-primary-dark)">
-                          ${b.amount.toFixed(2)}
+                          ฿{b.amount.toFixed(2)}
                         </span>
                       </td>
                       <td className={`${tdClass} text-center`}>

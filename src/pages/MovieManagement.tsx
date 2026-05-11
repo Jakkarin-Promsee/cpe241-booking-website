@@ -9,6 +9,12 @@ import MovieFormModal from "../components/editModal/MovieFormModal";
 
 const ITEMS_PER_PAGE = 4;
 type EffectiveMovieStatus = "Upcoming" | "Open" | "Ended" | "Hidden";
+const MOVIE_STATUS_FILTERS: EffectiveMovieStatus[] = [
+  "Upcoming",
+  "Open",
+  "Ended",
+  "Hidden",
+];
 
 function normalizeDate(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -417,7 +423,9 @@ export default function MovieManagementPage() {
   } = useMovieStore();
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [selectedStatuses, setSelectedStatuses] = useState<
+    Set<EffectiveMovieStatus>
+  >(() => new Set());
   const [page, setPage] = useState(1);
   const [movieModalOpen, setMovieModalOpen] = useState(false);
   const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
@@ -491,12 +499,23 @@ export default function MovieManagementPage() {
     void updateMovie(movie.show_id, payload).then(() => fetchMovies());
   };
 
+  const toggleStatus = (status: EffectiveMovieStatus) => {
+    setSelectedStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+    setPage(1);
+  };
+
   const filtered = movies.filter((m) => {
     const matchSearch =
       m.showtime_title.toLowerCase().includes(search.toLowerCase()) ||
       (m.genre ?? "").toLowerCase().includes(search.toLowerCase());
     const effectiveStatus = getEffectiveStatus(m);
-    const matchStatus = statusFilter === "All" || effectiveStatus === statusFilter;
+    const matchStatus =
+      selectedStatuses.size === 0 || selectedStatuses.has(effectiveStatus);
     return matchSearch && matchStatus;
   });
 
@@ -556,20 +575,26 @@ export default function MovieManagementPage() {
                 <span className="whitespace-nowrap text-sm text-(--color-text-secondary-dark)">
                   Show Status
                 </span>
-                <select
-                  value={statusFilter}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                    setStatusFilter(e.target.value);
-                    setPage(1);
-                  }}
-                  className={`cursor-pointer ${control}`}
-                >
-                  <option value="All">All</option>
-                  <option value="Upcoming">Upcoming</option>
-                  <option value="Open">Open</option>
-                  <option value="Ended">Ended</option>
-                  <option value="Hidden">Hidden</option>
-                </select>
+                <div className="flex gap-1">
+                  {MOVIE_STATUS_FILTERS.map((status) => {
+                    const active = selectedStatuses.has(status);
+                    return (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => toggleStatus(status)}
+                        aria-pressed={active}
+                        className={`rounded px-3 py-1 text-xs font-semibold transition-colors ${
+                          active
+                            ? "bg-(--color-pill-active-bg) text-(--color-pill-active-text)"
+                            : "bg-(--color-pill-idle-bg) text-(--color-pill-idle-text) hover:bg-(--color-pill-idle-bg-hover)"
+                        }`}
+                      >
+                        {status.toLowerCase()}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 

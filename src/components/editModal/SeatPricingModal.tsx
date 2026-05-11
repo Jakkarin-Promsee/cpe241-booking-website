@@ -275,14 +275,33 @@ export default function SeatPricingModal({
                             handleSeatMouseDown(seat.seat_id);
                           }}
                           onMouseEnter={() => handleSeatMouseEnter(seat.seat_id)}
-                          className={`rounded-md border px-2 py-1 text-xs font-semibold transition-colors ${
+                          className={`rounded-md border px-2 py-1.5 text-xs transition-colors ${
                             selected
                               ? "border-(--color-pill-active-border) bg-(--color-pill-active-bg) text-(--color-pill-active-text)"
                               : "border-(--color-input-border) bg-(--color-input-bg) text-(--color-text-secondary-dark) hover:border-(--color-input-border-focus) hover:text-(--color-text-primary-dark)"
                           }`}
-                          title={`Price: ${prices[seat.seat_id] ?? 280}`}
+                          title={`Price: ${prices[seat.seat_id] ?? 280}฿`}
                         >
-                          {seat.seat_number} - {prices[seat.seat_id] ?? 280}
+                          <span className="inline-flex items-center gap-1.5">
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[11px] font-bold leading-none ${
+                                selected
+                                  ? "bg-(--color-pill-active-border)/35 text-(--color-pill-active-text)"
+                                  : "bg-(--color-surface-panel-mid) text-(--color-text-primary-dark)"
+                              }`}
+                            >
+                              {seat.seat_number}
+                            </span>
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${
+                                selected
+                                  ? "bg-emerald-500/20 text-emerald-200"
+                                  : "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
+                              }`}
+                            >
+                              {prices[seat.seat_id] ?? 280}฿
+                            </span>
+                          </span>
                         </button>
                       );
                     })}

@@ -28,7 +28,7 @@ function StatusCards() {
         { label: "Today's Bookings", value: String(stats.todayBookings) },
         {
           label: "Today's Revenue",
-          value: `$${stats.todayRevenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+          value: `฿${stats.todayRevenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
         },
       ]
     : [];

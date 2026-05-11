@@ -86,6 +86,29 @@ export default function VenueManagementPage() {
   const [editingVenue, setEditingVenue] = useState<Venue | null>(null);
   const [seatInput, setSeatInput] = useState("");
 
+  const sortedSeatRows = useMemo(() => {
+    const seatCollator = new Intl.Collator(undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+    const rowCollator = new Intl.Collator(undefined, { sensitivity: "base" });
+    const grouped = new Map<string, typeof seats>();
+    for (const seat of seats) {
+      const row = (seat.seat_number.match(/^[A-Za-z]+/)?.[0] ?? "#").toUpperCase();
+      const existing = grouped.get(row) ?? [];
+      existing.push(seat);
+      grouped.set(row, existing);
+    }
+    return Array.from(grouped.entries())
+      .sort((a, b) => rowCollator.compare(a[0], b[0]))
+      .map(([row, rowSeats]) => ({
+        row,
+        seats: [...rowSeats].sort((a, b) =>
+          seatCollator.compare(a.seat_number, b.seat_number),
+        ),
+      }));
+  }, [seats]);
+
   useEffect(() => {
     void fetchVenues();
   }, []);
@@ -282,22 +305,31 @@ export default function VenueManagementPage() {
             ) : seats.length === 0 ? (
               <div className="text-sm text-(--color-text-disabled-dark)">No seats assigned.</div>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {seats.map((seat) => (
-                  <div
-                    key={seat.seat_id}
-                    className="inline-flex items-center gap-2 rounded-full border border-(--color-input-border) bg-(--color-surface-overlay) px-3 py-1 text-xs"
-                  >
-                    <span className="font-semibold text-(--color-text-primary-dark)">
-                      {seat.seat_number}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSeat(seat.seat_id)}
-                      className="rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] text-red-500 hover:bg-red-500/20"
-                    >
-                      remove
-                    </button>
+              <div className="flex flex-col gap-2">
+                {sortedSeatRows.map((row) => (
+                  <div key={row.row} className="rounded border border-(--color-border-mid) p-2">
+                    <div className="mb-2 text-[11px] font-semibold text-(--color-text-secondary-dark)">
+                      Row {row.row}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {row.seats.map((seat) => (
+                        <div
+                          key={seat.seat_id}
+                          className="inline-flex items-center gap-2 rounded-full border border-(--color-input-border) bg-(--color-surface-overlay) px-3 py-1 text-xs"
+                        >
+                          <span className="font-semibold text-(--color-text-primary-dark)">
+                            {seat.seat_number}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSeat(seat.seat_id)}
+                            className="rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] text-red-500 hover:bg-red-500/20"
+                          >
+                            remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

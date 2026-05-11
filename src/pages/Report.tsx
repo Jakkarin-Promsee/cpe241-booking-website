@@ -207,7 +207,7 @@ export default function ReportsPage() {
           },
           { key: "bookings", label: "Bookings" },
           { key: "seatsSold", label: "Seats Sold" },
-          { key: "revenue", label: "Revenue ($)" },
+          { key: "revenue", label: "Revenue (฿)" },
         ];
 
   const hasExportData =
@@ -359,7 +359,7 @@ export default function ReportsPage() {
               {
                 label: "Total Sales",
                 value: stats
-                  ? `$${stats.sales.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  ? `฿${stats.sales.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   : "—",
               },
               {
@@ -418,7 +418,7 @@ export default function ReportsPage() {
                     axisLine={{ stroke: "var(--color-chart-axis)" }}
                     width={52}
                     tickFormatter={(v: number) =>
-                      v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v}`
+                      v >= 1000 ? `฿${(v / 1000).toFixed(1)}k` : `฿${v}`
                     }
                   />
                   <Tooltip
@@ -433,7 +433,7 @@ export default function ReportsPage() {
                         : ""
                     }
                     formatter={(value) => [
-                      `$${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+                      `฿${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
                       "Revenue",
                     ]}
                   />
@@ -485,13 +485,13 @@ export default function ReportsPage() {
                     axisLine={{ stroke: "var(--color-chart-axis)" }}
                     width={52}
                     tickFormatter={(v: number) =>
-                      v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v}`
+                      v >= 1000 ? `฿${(v / 1000).toFixed(1)}k` : `฿${v}`
                     }
                   />
                   <Tooltip
                     contentStyle={tooltipContentStyle}
                     formatter={(value) => [
-                      `$${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+                      `฿${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
                       "Revenue",
                     ]}
                   />
@@ -506,75 +506,6 @@ export default function ReportsPage() {
             </div>
           )}
         </div>
-      </div>
-
-      <div className="rounded-lg px-5 py-5 border bg-(--color-surface-card) border-(--color-surface-card-border)">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-bold text-(--color-text-primary-light)">
-            Report Preview
-          </p>
-          <p className="text-xs text-(--color-text-muted-light)">
-            Grouped by {effectiveGroupBy} • {metric === "occupancy" ? "Occupancy" : "Sales"}
-          </p>
-        </div>
-        {loadingPreview ? (
-          <SkeletonBlock className="h-[140px] w-full" />
-        ) : previewRows.length === 0 ? (
-          <div className="rounded border border-(--color-border-light) px-3 py-8 text-center text-sm text-(--color-text-muted-light)">
-            No preview data for the selected report options.
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded border border-(--color-border-light)">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-(--color-chart-area-fill)">
-                  {previewColumns.map((column) => (
-                    <th
-                      key={column.key}
-                      className="border border-(--color-surface-card-border) px-3 py-2 text-left text-xs font-semibold text-(--color-text-secondary-light)"
-                    >
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {previewRows.map((row, index) => (
-                  <tr
-                    key={`${row.label}-${index}`}
-                    className={index % 2 === 0 ? "bg-(--color-surface-light)" : "bg-(--color-surface-card)"}
-                  >
-                    {previewColumns.map((column) => {
-                      const value = row[column.key];
-                      const formatted =
-                        typeof value === "number"
-                          ? column.key === "revenue"
-                            ? value.toLocaleString("en-US", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })
-                            : column.key === "occupancyRate"
-                              ? value.toLocaleString("en-US", {
-                                  minimumFractionDigits: 1,
-                                  maximumFractionDigits: 1,
-                                })
-                              : value.toLocaleString("en-US")
-                          : String(value ?? "—");
-                      return (
-                        <td
-                          key={column.key}
-                          className="border border-(--color-border-light) px-3 py-2.5 text-sm text-(--color-text-primary-light)"
-                        >
-                          {formatted}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       {/* Report generator */}
@@ -662,6 +593,75 @@ export default function ReportsPage() {
             {exporting ? "Generating..." : "Generate Report"}
           </button>
         </div>
+      </div>
+
+      <div className="rounded-lg px-5 py-5 border bg-(--color-surface-card) border-(--color-surface-card-border)">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm font-bold text-(--color-text-primary-light)">
+            Report Preview
+          </p>
+          <p className="text-xs text-(--color-text-muted-light)">
+            Grouped by {effectiveGroupBy} • {metric === "occupancy" ? "Occupancy" : "Sales"}
+          </p>
+        </div>
+        {loadingPreview ? (
+          <SkeletonBlock className="h-[140px] w-full" />
+        ) : previewRows.length === 0 ? (
+          <div className="rounded border border-(--color-border-light) px-3 py-8 text-center text-sm text-(--color-text-muted-light)">
+            No preview data for the selected report options.
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded border border-(--color-border-light)">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-(--color-chart-area-fill)">
+                  {previewColumns.map((column) => (
+                    <th
+                      key={column.key}
+                      className="border border-(--color-surface-card-border) px-3 py-2 text-left text-xs font-semibold text-(--color-text-secondary-light)"
+                    >
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {previewRows.map((row, index) => (
+                  <tr
+                    key={`${row.label}-${index}`}
+                    className={index % 2 === 0 ? "bg-(--color-surface-light)" : "bg-(--color-surface-card)"}
+                  >
+                    {previewColumns.map((column) => {
+                      const value = row[column.key];
+                      const formatted =
+                        typeof value === "number"
+                          ? column.key === "revenue"
+                            ? value.toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : column.key === "occupancyRate"
+                              ? value.toLocaleString("en-US", {
+                                  minimumFractionDigits: 1,
+                                  maximumFractionDigits: 1,
+                                })
+                              : value.toLocaleString("en-US")
+                          : String(value ?? "—");
+                      return (
+                        <td
+                          key={column.key}
+                          className="border border-(--color-border-light) px-3 py-2.5 text-sm text-(--color-text-primary-light)"
+                        >
+                          {formatted}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
