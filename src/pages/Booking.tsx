@@ -1,22 +1,26 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { useBookingStore, type Booking, type BookingFilters } from "../store/useBookingStore";
+import {
+  useBookingStore,
+  type Booking,
+  type BookingFilters,
+} from "../store/useBookingStore";
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 11;
 
 type BookingStatus = Booking["status"];
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
   Successful: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
-  Booking:    "bg-amber-400/15 text-amber-700 dark:text-amber-400",
-  Checkout:   "bg-blue-400/15 text-blue-700 dark:text-blue-400",
-  Cancel:     "bg-red-500/10 text-red-600 dark:text-red-400",
+  Booking: "bg-amber-400/15 text-amber-700 dark:text-amber-400",
+  Checkout: "bg-blue-400/15 text-blue-700 dark:text-blue-400",
+  Cancel: "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
 const DOT_STYLES: Record<BookingStatus, string> = {
   Successful: "bg-emerald-500",
-  Booking:    "bg-amber-500",
-  Checkout:   "bg-blue-500",
-  Cancel:     "bg-red-500",
+  Booking: "bg-amber-500",
+  Checkout: "bg-blue-500",
+  Cancel: "bg-red-500",
 };
 
 function StatusBadge({ status }: { status: BookingStatus }) {
@@ -24,7 +28,9 @@ function StatusBadge({ status }: { status: BookingStatus }) {
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[status] ?? ""}`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${DOT_STYLES[status] ?? ""}`} />
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${DOT_STYLES[status] ?? ""}`}
+      />
       {status}
     </span>
   );
@@ -100,7 +106,15 @@ function Pagination({
           disabled={btn.disabled}
           className={navBtn}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
             {btn.icon}
           </svg>
         </button>
@@ -141,7 +155,15 @@ function Pagination({
           disabled={btn.disabled}
           className={navBtn}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
             {btn.icon}
           </svg>
         </button>
@@ -155,8 +177,11 @@ export default function BookingPage() {
     useBookingStore();
 
   const [search, setSearch] = useState("");
-  const [dateRange, setDateRange] = useState("");
-  const [bookingStatus, setBookingStatus] = useState("All");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<BookingStatus>>(
+    () => new Set(),
+  );
   const [page, setPage] = useState(1);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -166,15 +191,19 @@ export default function BookingPage() {
     debounceRef.current = setTimeout(() => {
       const filters: BookingFilters = {
         search: search || undefined,
-        status: bookingStatus !== "All" ? bookingStatus : undefined,
-        dateFrom: dateRange || undefined,
+        status:
+          selectedStatuses.size > 0
+            ? Array.from(selectedStatuses).join(",")
+            : undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
       };
       void fetchBookings(filters);
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [search, bookingStatus, dateRange]);
+  }, [search, selectedStatuses, dateFrom, dateTo]);
 
   const handleCancel = (id: number) => {
     if (!window.confirm("Cancel this booking? This cannot be undone.")) return;
@@ -191,12 +220,18 @@ export default function BookingPage() {
     setSearch(e.target.value);
     setPage(1);
   };
-  const handleBookingStatus = (s: BookingStatus | "All") => {
-    setBookingStatus(s);
+  const toggleStatus = (s: BookingStatus) => {
+    setSelectedStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
+    });
     setPage(1);
   };
-  const handleShow = (e: ChangeEvent<HTMLSelectElement>) => {
-    setBookingStatus(e.target.value);
+  const handleClearDateRange = () => {
+    setDateFrom("");
+    setDateTo("");
     setPage(1);
   };
 
@@ -206,14 +241,6 @@ export default function BookingPage() {
     "px-4 py-3 text-sm border-b border-(--color-border-dark)/60 align-middle";
   const rowClass =
     "transition-colors hover:bg-(--color-surface-panel-mid)/40 last:border-b-0";
-
-  const STATUS_OPTIONS: (BookingStatus | "All")[] = [
-    "All",
-    "Successful",
-    "Booking",
-    "Checkout",
-    "Cancel",
-  ];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden bg-(--color-surface-panel) p-5">
@@ -255,22 +282,26 @@ export default function BookingPage() {
             Booking Status
           </span>
           <div className="flex gap-1">
-            {(["Successful", "Booking", "Checkout", "Cancel"] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() =>
-                  handleBookingStatus(bookingStatus === s ? "All" : s)
-                }
-                className={`rounded px-3 py-1 text-xs font-semibold transition-colors ${
-                  bookingStatus === s
-                    ? "bg-(--color-pill-active-bg) text-(--color-pill-active-text)"
-                    : "bg-(--color-pill-idle-bg) text-(--color-pill-idle-text) hover:bg-(--color-pill-idle-bg-hover)"
-                }`}
-              >
-                {s.toLowerCase()}
-              </button>
-            ))}
+            {(["Successful", "Booking", "Checkout", "Cancel"] as const).map(
+              (s) => {
+                const active = selectedStatuses.has(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleStatus(s)}
+                    aria-pressed={active}
+                    className={`rounded px-3 py-1 text-xs font-semibold transition-colors ${
+                      active
+                        ? "bg-(--color-pill-active-bg) text-(--color-pill-active-text)"
+                        : "bg-(--color-pill-idle-bg) text-(--color-pill-idle-text) hover:bg-(--color-pill-idle-bg-hover)"
+                    }`}
+                  >
+                    {s.toLowerCase()}
+                  </button>
+                );
+              },
+            )}
           </div>
         </div>
       </div>
@@ -283,45 +314,38 @@ export default function BookingPage() {
           </span>
           <input
             type="date"
-            value={dateRange}
+            value={dateFrom}
+            max={dateTo || undefined}
             onChange={(e) => {
-              setDateRange(e.target.value);
+              setDateFrom(e.target.value);
               setPage(1);
             }}
             className={control}
+            aria-label="From date"
           />
+          <span className="text-sm text-(--color-text-secondary-dark)">to</span>
+          <input
+            type="date"
+            value={dateTo}
+            min={dateFrom || undefined}
+            onChange={(e) => {
+              setDateTo(e.target.value);
+              setPage(1);
+            }}
+            className={control}
+            aria-label="To date"
+          />
+          <button
+            type="button"
+            onClick={handleClearDateRange}
+            disabled={!dateFrom && !dateTo}
+            className="rounded border border-(--color-input-border) bg-(--color-input-bg) px-3 py-1.5 text-xs font-medium text-(--color-text-secondary-dark) transition-colors hover:border-(--color-input-border-focus) hover:text-(--color-text-primary-dark) disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-(--color-input-border) disabled:hover:text-(--color-text-secondary-dark)"
+          >
+            Clear
+          </button>
         </div>
 
         <div className="flex-1" />
-
-        <div className="flex items-center gap-2">
-          <span className="whitespace-nowrap text-sm text-(--color-text-secondary-dark)">
-            Show Status
-          </span>
-          <div className="relative">
-            <select
-              value={bookingStatus}
-              onChange={handleShow}
-              className={`${control} cursor-pointer appearance-none pr-8`}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-            <svg
-              className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-(--color-text-muted-dark)"
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </div>
-        </div>
       </div>
 
       {/* Table */}
@@ -400,7 +424,9 @@ export default function BookingPage() {
                         {b.payment_proof_url ? (
                           <PaymentProofBtn url={b.payment_proof_url} />
                         ) : (
-                          <span className="text-(--color-text-muted-dark)">—</span>
+                          <span className="text-(--color-text-muted-dark)">
+                            —
+                          </span>
                         )}
                       </td>
                       <td className={tdClass}>
@@ -416,7 +442,9 @@ export default function BookingPage() {
                             Cancel
                           </button>
                         ) : (
-                          <span className="text-(--color-text-muted-dark)">—</span>
+                          <span className="text-(--color-text-muted-dark)">
+                            —
+                          </span>
                         )}
                       </td>
                     </tr>

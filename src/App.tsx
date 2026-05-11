@@ -4,6 +4,7 @@ import MovieManagementPage from "./pages/MovieManagement";
 import ScreenManagementPage from "./pages/ScreenManagement";
 import BookingPage from "./pages/Booking";
 import ReportsPage from "./pages/Report";
+import VenueManagementPage from "./pages/VenueManagement";
 import LoginPage from "./pages/Login";
 import { useAuthStore } from "./store/useAuth";
 import NotFound from "./pages/NotFound";
@@ -59,6 +60,7 @@ export default function App() {
         <Route path="/admin/" element={<DashboardPage />} />
         <Route path="/admin/movies" element={<MovieManagementPage />} />
         <Route path="/admin/screens" element={<ScreenManagementPage />} />
+        <Route path="/admin/venues" element={<VenueManagementPage />} />
         <Route path="/admin/booking" element={<BookingPage />} />
         <Route path="/admin/reports" element={<ReportsPage />} />
       </Route>

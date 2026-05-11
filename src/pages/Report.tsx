@@ -46,9 +46,41 @@ interface MonthlyRevenue {
   revenueK: number;
 }
 
+type BreakdownGroupBy = "date" | "movie" | "venue";
+type BreakdownMetric = "sales" | "occupancy";
+
+interface SalesBreakdownRow {
+  label: string;
+  bookings: number;
+  seatsSold: number;
+  revenue: number;
+}
+
+interface OccupancyBreakdownRow {
+  label: string;
+  totalSeats: number;
+  soldSeats: number;
+  occupancyRate: number;
+}
+
+type PreviewColumn = { key: string; label: string };
+type PreviewRow = Record<string, string | number>;
+
+function escapeCsv(value: string | number): string {
+  const text = String(value ?? "");
+  if (text.includes(",") || text.includes('"') || text.includes("\n")) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+function toCsv(rows: Array<Array<string | number>>): string {
+  return rows.map((row) => row.map(escapeCsv).join(",")).join("\n");
+}
+
 function formatDay(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { weekday: "short" });
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function formatMonth(monthStr: string): string {
@@ -76,20 +108,25 @@ function SkeletonBlock({ className }: { className: string }) {
 export default function ReportsPage() {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("This Year");
   const [reportType, setReportType] = useState(REPORT_TYPES[0]);
-  const [filterBy, setFilterBy] = useState("");
+  const [filterBy, setFilterBy] = useState("Date Range");
 
   const [stats, setStats] = useState<ReportStats | null>(null);
   const [dailyRevenue, setDailyRevenue] = useState<DailyRevenue[]>([]);
   const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
+  const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
   const [loadingCharts, setLoadingCharts] = useState(false);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch charts once on mount
+  // Re-fetch charts when period filter changes
   useEffect(() => {
     setLoadingCharts(true);
+    setError(null);
+    const period = PERIOD_MAP[activeFilter];
     Promise.all([
-      api.get<DailyRevenue[]>("/api/reports/revenue/daily"),
+      api.get<DailyRevenue[]>(`/api/reports/revenue/daily?period=${period}`),
       api.get<MonthlyRevenue[]>("/api/reports/revenue/monthly"),
     ])
       .then(([daily, monthly]) => {
@@ -100,7 +137,7 @@ export default function ReportsPage() {
         setError(err instanceof Error ? err.message : "Failed to load charts");
       })
       .finally(() => setLoadingCharts(false));
-  }, []);
+  }, [activeFilter]);
 
   // Re-fetch stats when period filter changes
   useEffect(() => {
@@ -119,6 +156,7 @@ export default function ReportsPage() {
 
   const dailyData = dailyRevenue.map((r) => ({
     day: formatDay(r.day),
+    fullDate: r.day,
     revenueK: Number(r.revenueK),
   }));
 
@@ -126,6 +164,154 @@ export default function ReportsPage() {
     month: formatMonth(r.month),
     revenueK: Number(r.revenueK),
   }));
+
+  const selectedGroupBy: BreakdownGroupBy =
+    filterBy === "Movie" ? "movie" : filterBy === "Venue" ? "venue" : "date";
+
+  const effectiveGroupBy: BreakdownGroupBy =
+    reportType === "Top Movies"
+      ? "movie"
+      : reportType === "Revenue by Venue"
+        ? "venue"
+        : selectedGroupBy;
+  const isFilterByLocked =
+    reportType === "Top Movies" || reportType === "Revenue by Venue";
+
+  const metric: BreakdownMetric = reportType === "Occupancy" ? "occupancy" : "sales";
+
+  const previewColumns: PreviewColumn[] =
+    metric === "occupancy"
+      ? [
+          {
+            key: "label",
+            label:
+              effectiveGroupBy === "date"
+                ? "Date"
+                : effectiveGroupBy === "movie"
+                  ? "Movie"
+                  : "Venue",
+          },
+          { key: "soldSeats", label: "Sold Seats" },
+          { key: "totalSeats", label: "Total Seats" },
+          { key: "occupancyRate", label: "Occupancy %" },
+        ]
+      : [
+          {
+            key: "label",
+            label:
+              effectiveGroupBy === "date"
+                ? "Date"
+                : effectiveGroupBy === "movie"
+                  ? "Movie"
+                  : "Venue",
+          },
+          { key: "bookings", label: "Bookings" },
+          { key: "seatsSold", label: "Seats Sold" },
+          { key: "revenue", label: "Revenue ($)" },
+        ];
+
+  const hasExportData =
+    stats != null ||
+    dailyRevenue.length > 0 ||
+    monthlyRevenue.length > 0 ||
+    previewRows.length > 0;
+
+  useEffect(() => {
+    setLoadingPreview(true);
+    setError(null);
+    const period = PERIOD_MAP[activeFilter];
+    api
+      .get<Array<SalesBreakdownRow | OccupancyBreakdownRow>>(
+        `/api/reports/breakdown?period=${period}&groupBy=${effectiveGroupBy}&metric=${metric}`,
+      )
+      .then((rows) => {
+        if (metric === "occupancy") {
+          setPreviewRows(
+            (rows as OccupancyBreakdownRow[]).map((row) => ({
+              label: row.label,
+              soldSeats: Number(row.soldSeats ?? 0),
+              totalSeats: Number(row.totalSeats ?? 0),
+              occupancyRate: Number(row.occupancyRate ?? 0),
+            })),
+          );
+          return;
+        }
+        setPreviewRows(
+          (rows as SalesBreakdownRow[]).map((row) => ({
+            label: row.label,
+            bookings: Number(row.bookings ?? 0),
+            seatsSold: Number(row.seatsSold ?? 0),
+            revenue: Number(row.revenue ?? 0),
+          })),
+        );
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Failed to load preview report");
+        setPreviewRows([]);
+      })
+      .finally(() => setLoadingPreview(false));
+  }, [activeFilter, effectiveGroupBy, metric]);
+
+  function handleGenerateReport() {
+    if (!hasExportData) {
+      setError("No data available to export yet. Please wait for report data to load.");
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const now = new Date();
+      const stamp = now.toISOString().slice(0, 19).replace(/[:T]/g, "-");
+
+      const rows: Array<Array<string | number>> = [];
+      rows.push(["Cinema Report Export"]);
+      rows.push(["Generated At", now.toLocaleString("en-US")]);
+      rows.push(["Period", activeFilter]);
+      rows.push(["Report Type", reportType]);
+      rows.push(["Filter By", filterBy || "All"]);
+      rows.push([]);
+
+      rows.push(["Summary"]);
+      rows.push(["Metric", "Value"]);
+      rows.push(["Total Sales", stats ? stats.sales.toFixed(2) : "N/A"]);
+      rows.push(["Top Movie by Revenue", stats?.topMovie ?? "N/A"]);
+      rows.push(["Average Occupancy (%)", stats != null ? stats.occupancy : "N/A"]);
+      rows.push([]);
+
+      rows.push(["Daily Revenue"]);
+      rows.push(["Date", "Revenue"]);
+      dailyRevenue.forEach((row) => {
+        rows.push([row.day, Number(row.revenueK).toFixed(2)]);
+      });
+      rows.push([]);
+
+      rows.push(["Monthly Revenue"]);
+      rows.push(["Month", "Revenue"]);
+      monthlyRevenue.forEach((row) => {
+        rows.push([row.month, Number(row.revenueK).toFixed(2)]);
+      });
+      rows.push([]);
+
+      rows.push(["Preview Data"]);
+      rows.push(previewColumns.map((column) => column.label));
+      previewRows.forEach((row) => {
+        rows.push(previewColumns.map((column) => row[column.key] ?? ""));
+      });
+
+      const csv = toCsv(rows);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cinema-report-${PERIOD_MAP[activeFilter]}-${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto min-w-0 p-5 gap-5 bg-(--color-surface-light)">
@@ -237,7 +423,15 @@ export default function ReportsPage() {
                   />
                   <Tooltip
                     contentStyle={tooltipContentStyle}
-                    labelFormatter={(day) => String(day)}
+                    labelFormatter={(_, payload) =>
+                      payload?.[0]?.payload?.fullDate
+                        ? new Date(`${payload[0].payload.fullDate}T00:00:00`).toLocaleDateString("en-US", {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : ""
+                    }
                     formatter={(value) => [
                       `$${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
                       "Revenue",
@@ -314,6 +508,75 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      <div className="rounded-lg px-5 py-5 border bg-(--color-surface-card) border-(--color-surface-card-border)">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm font-bold text-(--color-text-primary-light)">
+            Report Preview
+          </p>
+          <p className="text-xs text-(--color-text-muted-light)">
+            Grouped by {effectiveGroupBy} • {metric === "occupancy" ? "Occupancy" : "Sales"}
+          </p>
+        </div>
+        {loadingPreview ? (
+          <SkeletonBlock className="h-[140px] w-full" />
+        ) : previewRows.length === 0 ? (
+          <div className="rounded border border-(--color-border-light) px-3 py-8 text-center text-sm text-(--color-text-muted-light)">
+            No preview data for the selected report options.
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded border border-(--color-border-light)">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-(--color-chart-area-fill)">
+                  {previewColumns.map((column) => (
+                    <th
+                      key={column.key}
+                      className="border border-(--color-surface-card-border) px-3 py-2 text-left text-xs font-semibold text-(--color-text-secondary-light)"
+                    >
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {previewRows.map((row, index) => (
+                  <tr
+                    key={`${row.label}-${index}`}
+                    className={index % 2 === 0 ? "bg-(--color-surface-light)" : "bg-(--color-surface-card)"}
+                  >
+                    {previewColumns.map((column) => {
+                      const value = row[column.key];
+                      const formatted =
+                        typeof value === "number"
+                          ? column.key === "revenue"
+                            ? value.toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : column.key === "occupancyRate"
+                              ? value.toLocaleString("en-US", {
+                                  minimumFractionDigits: 1,
+                                  maximumFractionDigits: 1,
+                                })
+                              : value.toLocaleString("en-US")
+                          : String(value ?? "—");
+                      return (
+                        <td
+                          key={column.key}
+                          className="border border-(--color-border-light) px-3 py-2.5 text-sm text-(--color-text-primary-light)"
+                        >
+                          {formatted}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Report generator */}
       <div className="rounded-lg px-5 py-5 border bg-(--color-surface-card) border-(--color-surface-card-border)">
         <p className="text-sm font-bold mb-4 text-(--color-text-primary-light)">
@@ -359,9 +622,9 @@ export default function ReportsPage() {
               <select
                 value={filterBy}
                 onChange={(e) => setFilterBy(e.target.value)}
-                className="w-full appearance-none rounded px-3 py-2 text-sm outline-none pr-8 bg-(--color-surface-card) border border-(--color-border-light) focus:border-(--color-login-input-border-focus) text-(--color-text-muted-light)"
+                disabled={isFilterByLocked}
+                className="w-full appearance-none rounded px-3 py-2 text-sm outline-none pr-8 bg-(--color-surface-card) border border-(--color-border-light) focus:border-(--color-login-input-border-focus) text-(--color-text-muted-light) disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <option value="">Filter By</option>
                 {FILTER_BY.map((f) => (
                   <option key={f}>{f}</option>
                 ))}
@@ -379,15 +642,24 @@ export default function ReportsPage() {
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </div>
+            <p className="text-xs text-(--color-text-muted-light)">
+              {isFilterByLocked
+                ? reportType === "Top Movies"
+                  ? "Locked by report type: grouped by movie."
+                  : "Locked by report type: grouped by venue."
+                : "Controls how preview rows are grouped."}
+            </p>
           </div>
 
-          {/* Generate button — disabled: no export endpoint */}
+          {/* Generate button */}
           <button
-            disabled
-            title="Export not available"
-            className="px-5 py-2 text-sm font-semibold rounded whitespace-nowrap opacity-40 cursor-not-allowed bg-(--color-btn-secondary-bg) text-(--color-btn-secondary-text)"
+            type="button"
+            onClick={handleGenerateReport}
+            disabled={exporting || loadingStats || loadingCharts || loadingPreview}
+            title={exporting ? "Generating report..." : "Download CSV report"}
+            className="px-5 py-2 text-sm font-semibold rounded whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed bg-green-600 hover:bg-green-700 text-white transition-colors"
           >
-            Generate Report
+            {exporting ? "Generating..." : "Generate Report"}
           </button>
         </div>
       </div>

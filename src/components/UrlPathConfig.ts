@@ -63,6 +63,14 @@ export const ADMIN_PATH_CONFIG = [
     end: false,
   },
   {
+    path: "/admin/venues",
+    colorSet: dark_colorSet,
+    label: "Venue Management",
+    title: "Venue Management",
+    iconPath: iconPath("screenc"),
+    end: false,
+  },
+  {
     path: "/admin/booking",
     colorSet: dark_colorSet,
     title: "Booking",
