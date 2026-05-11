@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 
-const SEAT_PLANS = ["Standard 150 seats", "VIP 60 seats", "Standard 200 seats"];
-const SEAT_PRICES = [
-  "Weekend price",
-  "Weekday price",
-  "Holiday price",
-  "Student price",
-];
 const SLOT_START_HOUR = 10;
 const SLOT_END_HOUR = 22;
 const SLOT_STEP_MIN = 30;
@@ -25,8 +18,6 @@ const DEFAULT_FORM = {
   endTime: "12:00",
   adMinutes: DEFAULT_AD_MINUTES,
   bufferMinutes: DEFAULT_BUFFER_MINUTES,
-  seatPlan: "Standard 150 seats",
-  seatPrice: "Weekend price",
 };
 
 export type ScreenFormState = typeof DEFAULT_FORM;
@@ -81,8 +72,6 @@ function ScreenFormModal({
     ...DEFAULT_FORM,
     ...(initialData || {}),
   }));
-
-  if (!isOpen) return null;
 
   const movieDurationMap = useMemo(
     () => new Map(movies.map((m) => [m.title, m.duration])),
@@ -183,6 +172,8 @@ function ScreenFormModal({
     "w-full rounded px-3 py-2 text-sm outline-none transition bg-(--color-surface-card) border border-(--color-border-light) focus:border-(--color-login-input-border-focus) text-(--color-text-primary-light)";
 
   const selectClass = `${inputClass} appearance-none pr-8`;
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--color-login-scrim)">
@@ -388,65 +379,9 @@ function ScreenFormModal({
             </div>
           </div>
 
-          {/* Seat Plan / Seat Price */}
-          <div className="flex gap-3">
-            <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
-                Seat Plan Template
-              </label>
-              <div className="relative">
-                <select
-                  value={form.seatPlan}
-                  onChange={set("seatPlan")}
-                  className={selectClass}
-                >
-                  {SEAT_PLANS.map((p) => (
-                    <option key={p}>{p}</option>
-                  ))}
-                </select>
-                <svg
-                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-(--color-text-muted-light)"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
-                Seat Price
-              </label>
-              <div className="relative">
-                <select
-                  value={form.seatPrice}
-                  onChange={set("seatPrice")}
-                  className={selectClass}
-                >
-                  {SEAT_PRICES.map((p) => (
-                    <option key={p}>{p}</option>
-                  ))}
-                </select>
-                <svg
-                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-(--color-text-muted-light)"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            </div>
+          <div className="rounded border border-(--color-border-light) bg-(--color-surface-light) px-3 py-2 text-xs text-(--color-text-secondary-light)">
+            Seat pricing is configured in the next step, based on seats assigned to
+            the selected venue.
           </div>
         </div>
 

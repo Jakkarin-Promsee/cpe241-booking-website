@@ -1,25 +1,74 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMovieStore, type Movie, type MovieFormData } from "../store/useMovieStore";
+import {
+  useMovieStore,
+  type Movie,
+  type MovieFormData,
+} from "../store/useMovieStore";
 import MovieFormModal from "../components/editModal/MovieFormModal";
 
 const ITEMS_PER_PAGE = 4;
+type EffectiveMovieStatus = "Upcoming" | "Open" | "Ended" | "Hidden";
+
+function normalizeDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  // MySQL responses may be "YYYY-MM-DD" or full datetime/ISO strings.
+  // Use only the date part to keep lifecycle checks stable.
+  const datePart = value.slice(0, 10);
+  const parts = datePart.split("-");
+  if (parts.length !== 3) return null;
+  const [yearStr, monthStr, dayStr] = parts;
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day)
+  ) {
+    return null;
+  }
+  const parsed = new Date(year, month - 1, day);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getEffectiveStatus(movie: Movie): EffectiveMovieStatus {
+  if (movie.hiden) return "Hidden";
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const release = normalizeDate(movie.release_date);
+  const end = normalizeDate(movie.end_date);
+
+  if (release && today < release) return "Upcoming";
+  if (end && today > end) return "Ended";
+  return "Open";
+}
 
 // ─── Status Badge ────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
-  const isActive = status === "Active";
+  const toneClass =
+    status === "Open"
+      ? "bg-emerald-500/18 text-emerald-400 border border-emerald-500/30"
+      : status === "Upcoming"
+        ? "bg-amber-500/18 text-amber-300 border border-amber-500/30"
+        : status === "Ended"
+          ? "bg-sky-500/18 text-sky-300 border border-sky-500/30"
+          : "bg-white/8 text-white/50 border border-white/12";
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest w-fit ${
-        isActive
-          ? "bg-emerald-500/18 text-emerald-400 border border-emerald-500/30"
-          : "bg-white/8 text-white/50 border border-white/12"
-      }`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest w-fit ${toneClass}`}
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${
-          isActive ? "bg-emerald-400 animate-pulse" : "bg-white/40"
+          status === "Open"
+            ? "bg-emerald-400 animate-pulse"
+            : status === "Upcoming"
+              ? "bg-amber-300"
+              : status === "Ended"
+                ? "bg-sky-300"
+                : "bg-white/40"
         }`}
       />
       {status}
@@ -32,10 +81,14 @@ function StatusBadge({ status }: { status: string }) {
 function ActionButtons({
   onEdit,
   onSchedule,
+  onSetOpen,
+  onSetHidden,
   onDelete,
 }: {
   onEdit: () => void;
   onSchedule: () => void;
+  onSetOpen: () => void;
+  onSetHidden: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -106,6 +159,24 @@ function ActionButtons({
           <path d="M10 11v6M14 11v6" />
         </svg>
       </button>
+      {/* Quick Open */}
+      <button
+        type="button"
+        title="Set Open"
+        onClick={onSetOpen}
+        className="h-8 rounded-md px-2 text-[10px] font-semibold bg-emerald-500 text-white shadow-md ring-1 ring-emerald-300/60 hover:bg-emerald-400 transition-colors"
+      >
+        OPEN
+      </button>
+      {/* Quick Hidden */}
+      <button
+        type="button"
+        title="Set Hidden"
+        onClick={onSetHidden}
+        className="h-8 rounded-md px-2 text-[10px] font-semibold bg-zinc-700 text-zinc-200 shadow-md ring-1 ring-zinc-500/60 hover:bg-zinc-600 transition-colors"
+      >
+        HIDE
+      </button>
     </div>
   );
 }
@@ -116,13 +187,19 @@ function MovieCard({
   movie,
   onEdit,
   onSchedule,
+  onSetOpen,
+  onSetHidden,
   onDelete,
 }: {
   movie: Movie;
   onEdit: () => void;
   onSchedule: () => void;
+  onSetOpen: () => void;
+  onSetHidden: () => void;
   onDelete: () => void;
 }) {
+  const effectiveStatus = getEffectiveStatus(movie);
+
   return (
     <div className="group relative flex flex-col rounded-xl border border-(--color-input-border)/50 bg-(--color-border-dark) overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-input-border)">
       {/* Poster */}
@@ -154,7 +231,7 @@ function MovieCard({
 
         {/* Gradient overlay with title + status */}
         <div className="absolute inset-0 bg-linear-to-t from-black/82 via-black/20 to-transparent flex flex-col justify-end p-3 gap-1">
-          <StatusBadge status={movie.status} />
+          <StatusBadge status={effectiveStatus} />
           <p
             className="font-bold text-white text-sm leading-tight"
             style={{ fontFamily: "'Playfair Display', serif" }}
@@ -162,7 +239,10 @@ function MovieCard({
             {movie.showtime_title}
           </p>
           {movie.release_date && (
-            <p className="text-[11px] text-white/55">{movie.release_date}</p>
+            <p className="text-[11px] text-white/55">
+              {movie.release_date}
+              {movie.end_date ? ` - ${movie.end_date}` : ""}
+            </p>
           )}
         </div>
 
@@ -170,6 +250,8 @@ function MovieCard({
         <ActionButtons
           onEdit={onEdit}
           onSchedule={onSchedule}
+          onSetOpen={onSetOpen}
+          onSetHidden={onSetHidden}
           onDelete={onDelete}
         />
       </div>
@@ -236,7 +318,15 @@ function Pagination({
         disabled={current === 1}
         onClick={() => onChange(1)}
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        >
           <polyline points="11 17 6 12 11 7" />
           <polyline points="18 17 13 12 18 7" />
         </svg>
@@ -247,7 +337,15 @@ function Pagination({
         disabled={current === 1}
         onClick={() => onChange(current - 1)}
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        >
           <polyline points="15 18 9 12 15 6" />
         </svg>
       </button>
@@ -269,7 +367,15 @@ function Pagination({
         disabled={current === total}
         onClick={() => onChange(current + 1)}
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        >
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </button>
@@ -279,7 +385,15 @@ function Pagination({
         disabled={current === total}
         onClick={() => onChange(total)}
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        >
           <polyline points="13 17 18 12 13 7" />
           <polyline points="6 17 11 12 6 7" />
         </svg>
@@ -292,8 +406,15 @@ function Pagination({
 
 export default function MovieManagementPage() {
   const navigate = useNavigate();
-  const { movies, loading, error, fetchMovies, createMovie, updateMovie, deleteMovie } =
-    useMovieStore();
+  const {
+    movies,
+    loading,
+    error,
+    fetchMovies,
+    createMovie,
+    updateMovie,
+    deleteMovie,
+  } = useMovieStore();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -326,6 +447,8 @@ export default function MovieManagementPage() {
     duration: string | number;
     description: string;
     releaseDate: string;
+    endDate: string;
+    hiden: boolean;
   }) => {
     const durationNum = Number(form.duration);
     const data: MovieFormData = {
@@ -334,6 +457,9 @@ export default function MovieManagementPage() {
       duration: Number.isFinite(durationNum) ? durationNum : 0,
       description: form.description || undefined,
       releaseDate: form.releaseDate || undefined,
+      endDate: form.endDate || undefined,
+      status: form.hiden ? "Hidden" : "Open",
+      hiden: form.hiden,
     };
     if (editingMovie) {
       void updateMovie(editingMovie.show_id, data).then(() => fetchMovies());
@@ -347,11 +473,30 @@ export default function MovieManagementPage() {
     void deleteMovie(id);
   };
 
+  const handleQuickStatus = (movie: Movie, status: "Open" | "Hidden") => {
+    if ((status === "Hidden" && movie.hiden) || (status === "Open" && !movie.hiden)) {
+      return;
+    }
+    const payload: MovieFormData = {
+      title: movie.showtime_title,
+      genre: movie.genre ?? undefined,
+      duration: movie.duration,
+      description: movie.showtime_descript ?? undefined,
+      releaseDate: movie.release_date ?? undefined,
+      endDate: movie.end_date ?? undefined,
+      posterUrl: movie.poster_url ?? undefined,
+      status,
+      hiden: status === "Hidden",
+    };
+    void updateMovie(movie.show_id, payload).then(() => fetchMovies());
+  };
+
   const filtered = movies.filter((m) => {
     const matchSearch =
       m.showtime_title.toLowerCase().includes(search.toLowerCase()) ||
       (m.genre ?? "").toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "All" || m.status === statusFilter;
+    const effectiveStatus = getEffectiveStatus(m);
+    const matchStatus = statusFilter === "All" || effectiveStatus === statusFilter;
     return matchSearch && matchStatus;
   });
 
@@ -420,8 +565,10 @@ export default function MovieManagementPage() {
                   className={`cursor-pointer ${control}`}
                 >
                   <option value="All">All</option>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="Upcoming">Upcoming</option>
+                  <option value="Open">Open</option>
+                  <option value="Ended">Ended</option>
+                  <option value="Hidden">Hidden</option>
                 </select>
               </div>
             </div>
@@ -463,6 +610,8 @@ export default function MovieManagementPage() {
                     movie={movie}
                     onEdit={() => openEditMovie(movie)}
                     onSchedule={() => navigate("/admin/screens")}
+                    onSetOpen={() => handleQuickStatus(movie, "Open")}
+                    onSetHidden={() => handleQuickStatus(movie, "Hidden")}
                     onDelete={() => handleDelete(movie.show_id)}
                   />
                 ))}
@@ -490,6 +639,8 @@ export default function MovieManagementPage() {
                 duration: editingMovie.duration,
                 description: editingMovie.showtime_descript ?? "",
                 releaseDate: editingMovie.release_date ?? "",
+                endDate: editingMovie.end_date ?? "",
+                hiden: editingMovie.hiden,
                 poster: null,
               }
             : null

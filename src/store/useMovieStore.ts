@@ -8,8 +8,10 @@ export interface Movie {
   duration: number;
   genre: string | null;
   release_date: string | null;
+  end_date: string | null;
   poster_url: string | null;
-  status: "Active" | "Inactive";
+  status: "Upcoming" | "Open" | "Ended" | "Hidden";
+  hiden: boolean;
 }
 
 export interface MovieFormData {
@@ -18,8 +20,17 @@ export interface MovieFormData {
   duration: number;
   description?: string;
   releaseDate?: string;
+  endDate?: string;
   posterUrl?: string;
-  status?: "Active" | "Inactive";
+  status?: "Upcoming" | "Open" | "Ended" | "Hidden";
+  hiden?: boolean;
+}
+
+function normalizeMovie(raw: Omit<Movie, "hiden"> & { hiden?: boolean }): Movie {
+  return {
+    ...raw,
+    hiden: typeof raw.hiden === "boolean" ? raw.hiden : raw.status === "Hidden",
+  };
 }
 
 type MovieState = {
@@ -44,10 +55,10 @@ export const useMovieStore = create<MovieState>()((set) => ({
       if (search) params.set("search", search);
       if (status) params.set("status", status);
       const qs = params.toString();
-      const movies = await api.get<Movie[]>(
+      const movies = await api.get<Array<Omit<Movie, "hiden"> & { hiden?: boolean }>>(
         `/api/movies${qs ? `?${qs}` : ""}`,
       );
-      set({ movies, loading: false });
+      set({ movies: movies.map(normalizeMovie), loading: false });
     } catch (err) {
       set({
         error:
@@ -58,14 +69,22 @@ export const useMovieStore = create<MovieState>()((set) => ({
   },
 
   createMovie: async (data) => {
-    const movie = await api.post<Movie>("/api/movies", data);
-    set((s) => ({ movies: [movie, ...s.movies] }));
+    const movie = await api.post<Omit<Movie, "hiden"> & { hiden?: boolean }>(
+      "/api/movies",
+      data,
+    );
+    set((s) => ({ movies: [normalizeMovie(movie), ...s.movies] }));
   },
 
   updateMovie: async (id, data) => {
-    const movie = await api.put<Movie>(`/api/movies/${id}`, data);
+    const movie = await api.put<Omit<Movie, "hiden"> & { hiden?: boolean }>(
+      `/api/movies/${id}`,
+      data,
+    );
     set((s) => ({
-      movies: s.movies.map((m) => (m.show_id === id ? movie : m)),
+      movies: s.movies.map((m) =>
+        m.show_id === id ? normalizeMovie(movie) : m,
+      ),
     }));
   },
 

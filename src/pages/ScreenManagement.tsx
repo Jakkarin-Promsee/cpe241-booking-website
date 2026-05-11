@@ -9,6 +9,7 @@ import ScreenFormModal, {
   type ExistingShowtimeSlot,
   type ScreenFormState,
 } from "../components/editModal/ScreenFormModal";
+import SeatPricingModal from "../components/editModal/SeatPricingModal";
 
 // ─── Local row type (adapted from Showing) ────────────────────────────────────
 
@@ -48,7 +49,9 @@ function StatusBadge({ status }: { status: ShowingStatus }) {
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[status] ?? ""}`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${DOT_STYLES[status] ?? ""}`} />
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${DOT_STYLES[status] ?? ""}`}
+      />
       {status}
     </span>
   );
@@ -134,8 +137,6 @@ function showtimeToFormFields(s: ShowtimeRow): Partial<ScreenFormState> {
     endTime,
     adMinutes: 15,
     bufferMinutes: 10,
-    seatPlan: "Standard 150 seats",
-    seatPrice: "Weekend price",
   };
 }
 
@@ -538,9 +539,11 @@ export default function ScreenManagementPage() {
     error,
     fetchVenues,
     fetchShowings,
+    fetchVenueSeats,
     createShowing,
     updateShowing,
     deleteShowing,
+    venueSeatsByVenueId,
   } = useShowingStore();
 
   const { movies, fetchMovies } = useMovieStore();
@@ -553,6 +556,18 @@ export default function ScreenManagementPage() {
     null,
   );
   const [showtimeFormKey, setShowtimeFormKey] = useState(0);
+  const [seatPricingModalOpen, setSeatPricingModalOpen] = useState(false);
+  const [seatPricingInitialPrices, setSeatPricingInitialPrices] = useState<
+    Record<number, number>
+  >({});
+  const [seatPricingVenueId, setSeatPricingVenueId] = useState<number | null>(
+    null,
+  );
+  const [pendingSave, setPendingSave] = useState<{
+    mode: "create" | "update";
+    showingId?: number;
+    data: ShowingFormData;
+  } | null>(null);
 
   // Load venues and movies once on mount
   useEffect(() => {
@@ -599,7 +614,7 @@ export default function ScreenManagementPage() {
     setEditingShowtime(null);
   };
 
-  const handleSaveShowtime = (form: ScreenFormState) => {
+  const handleSaveShowtime = async (form: ScreenFormState) => {
     const movie = movies.find((m) => m.showtime_title === form.movie);
     const venue = venues.find((v) => v.venues_name === form.screen);
     if (!movie || !venue) return;
@@ -613,22 +628,51 @@ export default function ScreenManagementPage() {
       adMinutes: form.adMinutes,
       bufferMinutes: form.bufferMinutes,
       language: form.language || undefined,
-      seatPrice: form.seatPrice,
       status: editingShowtime?.status ?? "Ontime",
     };
+    const venueSeats =
+      venueSeatsByVenueId[venue.venues_id] ??
+      (await fetchVenueSeats(venue.venues_id));
+    if (venueSeats.length === 0) {
+      window.alert("This venue has no assigned seats. Please add venue seats first.");
+      return;
+    }
 
+    const defaultSeatPrice = 280;
+    const initialPrices = Object.fromEntries(
+      venueSeats.map((seat) => [seat.seat_id, defaultSeatPrice]),
+    );
+    setSeatPricingInitialPrices(initialPrices);
+    setSeatPricingVenueId(venue.venues_id);
+    setPendingSave(
+      editingShowtime
+        ? { mode: "update", showingId: editingShowtime.id, data }
+        : { mode: "create", data },
+    );
+    setSeatPricingModalOpen(true);
+  };
+
+  const handleConfirmSeatPricing = (
+    seatPricing: Array<{ seatId: number; seatPrice: number }>,
+  ) => {
+    if (!pendingSave) return;
+    const payload: ShowingFormData = { ...pendingSave.data, seatPricing };
     const refetch = () => {
       const venueObj = selectedTheater
         ? venues.find((v) => v.venues_name === selectedTheater)
         : undefined;
       void fetchShowings(venueObj?.venues_id, selectedDate || undefined);
     };
-
-    if (editingShowtime) {
-      void updateShowing(editingShowtime.id, data).then(refetch);
-    } else {
-      void createShowing(data).then(refetch);
-    }
+    const task =
+      pendingSave.mode === "update" && pendingSave.showingId
+        ? updateShowing(pendingSave.showingId, payload)
+        : createShowing(payload);
+    void task.then(() => {
+      setSeatPricingModalOpen(false);
+      setPendingSave(null);
+      setSeatPricingVenueId(null);
+      refetch();
+    });
   };
 
   const handleDelete = (id: number) => {
@@ -767,6 +811,24 @@ export default function ScreenManagementPage() {
               }
         }
       />
+
+      {seatPricingModalOpen && (
+        <SeatPricingModal
+          isOpen={seatPricingModalOpen}
+          onClose={() => {
+            setSeatPricingModalOpen(false);
+            setPendingSave(null);
+            setSeatPricingVenueId(null);
+          }}
+          seats={
+            seatPricingVenueId
+              ? (venueSeatsByVenueId[seatPricingVenueId] ?? [])
+              : []
+          }
+          initialPrices={seatPricingInitialPrices}
+          onConfirm={handleConfirmSeatPricing}
+        />
+      )}
     </div>
   );
 }

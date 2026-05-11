@@ -7,6 +7,11 @@ export interface Venue {
   venues_address: string;
 }
 
+export interface VenueSeat {
+  seat_id: number;
+  seat_number: string;
+}
+
 export interface Showing {
   showing_id: number;
   show_id: number;
@@ -37,16 +42,19 @@ export interface ShowingFormData {
   bufferMinutes?: number;
   language?: string;
   seatPrice?: string | number;
+  seatPricing?: Array<{ seatId: number; seatPrice: number }>;
   bookingDate?: string;
 }
 
 type ShowingState = {
   showings: Showing[];
   venues: Venue[];
+  venueSeatsByVenueId: Record<number, VenueSeat[]>;
   loading: boolean;
   error: string | null;
   fetchVenues: () => Promise<void>;
   fetchShowings: (venueId?: number, date?: string) => Promise<void>;
+  fetchVenueSeats: (venueId: number) => Promise<VenueSeat[]>;
   createShowing: (data: ShowingFormData) => Promise<void>;
   updateShowing: (id: number, data: Partial<ShowingFormData>) => Promise<void>;
   deleteShowing: (id: number) => Promise<void>;
@@ -55,6 +63,7 @@ type ShowingState = {
 export const useShowingStore = create<ShowingState>()((set) => ({
   showings: [],
   venues: [],
+  venueSeatsByVenueId: {},
   loading: false,
   error: null,
 
@@ -64,8 +73,7 @@ export const useShowingStore = create<ShowingState>()((set) => ({
       set({ venues });
     } catch (err) {
       set({
-        error:
-          err instanceof Error ? err.message : "Failed to fetch venues",
+        error: err instanceof Error ? err.message : "Failed to fetch venues",
       });
     }
   },
@@ -83,10 +91,24 @@ export const useShowingStore = create<ShowingState>()((set) => ({
       set({ showings, loading: false });
     } catch (err) {
       set({
-        error:
-          err instanceof Error ? err.message : "Failed to fetch showings",
+        error: err instanceof Error ? err.message : "Failed to fetch showings",
         loading: false,
       });
+    }
+  },
+
+  fetchVenueSeats: async (venueId) => {
+    try {
+      const seats = await api.get<VenueSeat[]>(`/api/venues/${venueId}/seats`);
+      set((s) => ({
+        venueSeatsByVenueId: { ...s.venueSeatsByVenueId, [venueId]: seats },
+      }));
+      return seats;
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : "Failed to fetch venue seats",
+      });
+      return [];
     }
   },
 

@@ -5,6 +5,7 @@ export interface Venue {
   venues_id: number;
   venues_name: string;
   venues_address: string;
+  seat_count: number;
 }
 
 export interface VenueSeat {
@@ -96,12 +97,17 @@ export const useVenueStore = create<VenueState>()((set) => ({
     const seats = await api.post<VenueSeat[]>(`/api/venues/${venueId}/seats`, {
       seatNumbers,
     });
-    set({ seats });
+    const venues = await api.get<Venue[]>("/api/venues");
+    set({ seats, venues });
   },
 
   removeSeat: async (venueId, seatId) => {
     await api.delete(`/api/venues/${venueId}/seats/${seatId}`);
-    set((s) => ({ seats: s.seats.filter((seat) => seat.seat_id !== seatId) }));
+    const venues = await api.get<Venue[]>("/api/venues");
+    set((s) => ({
+      seats: s.seats.filter((seat) => seat.seat_id !== seatId),
+      venues,
+    }));
   },
 }));
 

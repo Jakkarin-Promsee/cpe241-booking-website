@@ -1,4 +1,5 @@
 const BASE_URL = 'http://localhost:5000';
+const AUTH_STORAGE_KEY = 'cinema-admin-auth';
 
 function getToken(): string | null {
   try {
@@ -7,6 +8,14 @@ function getToken(): string | null {
     return (JSON.parse(stored) as { state?: { token?: string } })?.state?.token ?? null;
   } catch {
     return null;
+  }
+}
+
+function clearPersistedAuth(): void {
+  try {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+  } catch {
+    // ignore storage write errors
   }
 }
 
@@ -22,7 +31,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   });
 
   if (res.status === 401) {
-    window.location.href = '/admin/login';
+    clearPersistedAuth();
+    window.location.replace('/admin/login');
     throw new Error('Unauthorized');
   }
 

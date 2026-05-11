@@ -156,6 +156,7 @@ export default function VenueManagementPage() {
           <div className="mb-4">
             {editingVenue ? (
               <VenueForm
+                key={`edit-${editingVenue.venues_id}`}
                 initial={{
                   name: editingVenue.venues_name,
                   address: editingVenue.venues_address,
@@ -165,7 +166,11 @@ export default function VenueManagementPage() {
                 onCancel={() => setEditingVenue(null)}
               />
             ) : (
-              <VenueForm submitLabel="Add Venue" onSubmit={handleAddVenue} />
+              <VenueForm
+                key="new"
+                submitLabel="Add Venue"
+                onSubmit={handleAddVenue}
+              />
             )}
           </div>
 
@@ -199,7 +204,7 @@ export default function VenueManagementPage() {
                         {venue.venues_address}
                       </td>
                       <td className="border border-(--color-border-mid) px-3 py-2 text-sm text-(--color-text-secondary-dark)">
-                        {active ? seats.length : "—"}
+                        {active ? seats.length : venue.seat_count}
                       </td>
                       <td className="border border-(--color-border-mid) px-3 py-2">
                         <div className="flex items-center gap-2">

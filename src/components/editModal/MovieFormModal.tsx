@@ -6,6 +6,8 @@ export type MovieFormValues = {
   duration: string | number;
   description: string;
   releaseDate: string;
+  endDate: string;
+  hiden: boolean;
   poster?: File | null;
 };
 
@@ -28,6 +30,8 @@ function MovieFormModal({
     duration: initialData?.duration || "",
     description: initialData?.description || "",
     releaseDate: initialData?.releaseDate || "",
+    endDate: initialData?.endDate || "",
+    hiden: initialData?.hiden ?? false,
     poster: initialData?.poster || null,
   });
 
@@ -116,6 +120,23 @@ function MovieFormModal({
             </div>
           </div>
 
+          {/* Visibility */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+              Visibility
+            </label>
+            <label className="inline-flex items-center gap-2 rounded border border-(--color-border-light) bg-(--color-login-input-bg) px-3 py-2 text-sm text-(--color-text-secondary-light)">
+              <input
+                type="checkbox"
+                checked={form.hiden}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, hiden: e.target.checked }))
+                }
+              />
+              Hide this movie from listings
+            </label>
+          </div>
+
           {/* Description */}
           <div className="flex flex-col gap-1.5">
             <textarea
@@ -127,7 +148,7 @@ function MovieFormModal({
             />
           </div>
 
-          {/* Release Date + Upload Poster */}
+          {/* Release Date + End Date */}
           <div className="flex gap-3">
             <div className="flex flex-col gap-1.5 flex-1">
               <label className="text-sm font-semibold text-(--color-text-secondary-light)">
@@ -140,6 +161,21 @@ function MovieFormModal({
                 className={inputClass}
               />
             </div>
+            <div className="flex flex-col gap-1.5 flex-1">
+              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={form.endDate}
+                onChange={handleChange("endDate")}
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          {/* Upload Poster */}
+          <div className="flex gap-3">
             <div className="flex flex-col gap-1.5 flex-1">
               <label className="text-sm font-semibold text-(--color-text-secondary-light)">
                 Upload Poster image
