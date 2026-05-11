@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   useShowingStore,
   type Showing,
@@ -31,6 +32,10 @@ type ShowtimeRow = {
 };
 
 type ShowingStatus = Showing["status"];
+type ScreenRouteState = {
+  openCreateModal?: boolean;
+  prefillMovieTitle?: string;
+};
 
 const STATUS_STYLES: Record<ShowingStatus, string> = {
   Ontime: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
@@ -532,6 +537,8 @@ function ShowtimesTable({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ScreenManagementPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const {
     showings,
     venues,
@@ -556,6 +563,9 @@ export default function ScreenManagementPage() {
     null,
   );
   const [showtimeFormKey, setShowtimeFormKey] = useState(0);
+  const [createPrefill, setCreatePrefill] = useState<
+    Partial<ScreenFormState> | null
+  >(null);
   const [seatPricingModalOpen, setSeatPricingModalOpen] = useState(false);
   const [seatPricingInitialPrices, setSeatPricingInitialPrices] = useState<
     Record<number, number>
@@ -597,8 +607,9 @@ export default function ScreenManagementPage() {
     endTime: s.end_time.slice(0, 5),
   }));
 
-  const openAddShowtime = () => {
+  const openAddShowtime = (prefill?: Partial<ScreenFormState>) => {
     setEditingShowtime(null);
+    setCreatePrefill(prefill ?? null);
     setShowtimeFormKey((k) => k + 1);
     setShowtimeModalOpen(true);
   };
@@ -612,7 +623,35 @@ export default function ScreenManagementPage() {
   const closeShowtimeModal = () => {
     setShowtimeModalOpen(false);
     setEditingShowtime(null);
+    setCreatePrefill(null);
   };
+
+  useEffect(() => {
+    const routeState = (location.state ?? null) as ScreenRouteState | null;
+    if (!routeState?.openCreateModal || !routeState.prefillMovieTitle) return;
+    if (showtimeModalOpen) return;
+
+    const movieExists = movies.some(
+      (m) => m.showtime_title === routeState.prefillMovieTitle,
+    );
+    if (!movieExists) return;
+
+    openAddShowtime({
+      movie: routeState.prefillMovieTitle,
+      date: selectedDate || "",
+      screen: selectedTheater || (venues[0]?.venues_name ?? ""),
+    });
+    navigate(location.pathname, { replace: true, state: null });
+  }, [
+    location.pathname,
+    location.state,
+    movies,
+    navigate,
+    selectedDate,
+    selectedTheater,
+    showtimeModalOpen,
+    venues,
+  ]);
 
   const handleSaveShowtime = async (form: ScreenFormState) => {
     const movie = movies.find((m) => m.showtime_title === form.movie);
@@ -765,7 +804,7 @@ export default function ScreenManagementPage() {
         {/* Add showtime */}
         <button
           type="button"
-          onClick={openAddShowtime}
+          onClick={() => openAddShowtime()}
           className="text-sm font-semibold px-4 py-1.5 rounded transition-colors whitespace-nowrap bg-(--color-btn-primary-bg) hover:bg-(--color-btn-primary-bg-hover) text-(--color-btn-primary-text)"
         >
           + Add Showtime
@@ -808,6 +847,7 @@ export default function ScreenManagementPage() {
             : {
                 date: selectedDate || "",
                 screen: selectedVenueName,
+                ...createPrefill,
               }
         }
       />

@@ -609,7 +609,14 @@ export default function MovieManagementPage() {
                     key={movie.show_id}
                     movie={movie}
                     onEdit={() => openEditMovie(movie)}
-                    onSchedule={() => navigate("/admin/screens")}
+                    onSchedule={() =>
+                      navigate("/admin/screens", {
+                        state: {
+                          openCreateModal: true,
+                          prefillMovieTitle: movie.showtime_title,
+                        },
+                      })
+                    }
                     onSetOpen={() => handleQuickStatus(movie, "Open")}
                     onSetHidden={() => handleQuickStatus(movie, "Hidden")}
                     onDelete={() => handleDelete(movie.show_id)}
