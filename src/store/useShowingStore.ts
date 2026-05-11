@@ -20,6 +20,8 @@ export interface Showing {
   movie_title: string;
   duration: number;
   venues_name: string;
+  sold: number;
+  capacity: number;
 }
 
 export interface ShowingFormData {
@@ -31,6 +33,8 @@ export interface ShowingFormData {
   endTime?: string;
   startHour?: number;
   endHour?: number;
+  adMinutes?: number;
+  bufferMinutes?: number;
   language?: string;
   seatPrice?: string | number;
   bookingDate?: string;
