@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from "react";
+import { useMemo, useRef, useState, type ChangeEvent } from "react";
 
 export type MovieFormValues = {
   title: string;
@@ -32,6 +32,13 @@ function MovieFormModal({
   });
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const posterPreviewUrl = useMemo(
+    () => (form.poster instanceof File ? URL.createObjectURL(form.poster) : null),
+    [form.poster],
+  );
+
+  const isValid = form.title.trim() !== "" && Number(form.duration) > 0;
 
   if (!isOpen) return null;
 
@@ -72,7 +79,7 @@ function MovieFormModal({
           {/* Movie Title */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-(--color-text-secondary-light)">
-              Movie Title
+              Movie Title <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
@@ -97,13 +104,13 @@ function MovieFormModal({
             </div>
             <div className="flex flex-col gap-1.5 flex-1">
               <label className="text-sm font-semibold text-(--color-text-secondary-light)">
-                Duration (min)
+                Duration (min) <span className="text-red-400">*</span>
               </label>
               <input
                 type="number"
                 value={form.duration}
                 onChange={handleChange("duration")}
-                min={0}
+                min={1}
                 className={inputClass}
               />
             </div>
@@ -153,6 +160,15 @@ function MovieFormModal({
               />
             </div>
           </div>
+
+          {/* Poster preview */}
+          {posterPreviewUrl && (
+            <img
+              src={posterPreviewUrl}
+              alt="poster preview"
+              className="w-full max-h-40 object-cover rounded border border-(--color-border-light)"
+            />
+          )}
         </div>
 
         {/* Footer */}
@@ -167,7 +183,8 @@ function MovieFormModal({
           <button
             type="button"
             onClick={handleSave}
-            className="px-5 py-2 rounded text-sm font-semibold text-white transition bg-(--color-login-btn-bg) hover:bg-(--color-login-btn-bg-hover)"
+            disabled={!isValid}
+            className="px-5 py-2 rounded text-sm font-semibold text-white transition bg-(--color-login-btn-bg) hover:bg-(--color-login-btn-bg-hover) disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Save
           </button>

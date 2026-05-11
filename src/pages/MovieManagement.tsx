@@ -1,15 +1,9 @@
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { DEFAULT_POSTER_URL, MOVIES } from "../store/tempMoiveData";
+import { useMovieStore, type Movie, type MovieFormData } from "../store/useMovieStore";
 import MovieFormModal from "../components/editModal/MovieFormModal";
 
 const ITEMS_PER_PAGE = 4;
-
-type MovieListItem = (typeof MOVIES)[number] & {
-  description?: string;
-  releaseDate?: string;
-  poster?: File | null;
-};
 
 // ─── Status Badge ────────────────────────────────────────────────────────────
 
@@ -124,7 +118,7 @@ function MovieCard({
   onSchedule,
   onDelete,
 }: {
-  movie: MovieListItem;
+  movie: Movie;
   onEdit: () => void;
   onSchedule: () => void;
   onDelete: () => void;
@@ -133,10 +127,10 @@ function MovieCard({
     <div className="group relative flex flex-col rounded-xl border border-(--color-input-border)/50 bg-(--color-border-dark) overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-input-border)">
       {/* Poster */}
       <div className="relative aspect-2/3 overflow-hidden bg-(--color-border-dark)">
-        {movie.posterUrl ? (
+        {movie.poster_url ? (
           <img
-            src={movie.posterUrl}
-            alt={movie.title}
+            src={movie.poster_url}
+            alt={movie.showtime_title}
             loading="lazy"
             className="w-full h-full object-cover transition-transform duration-350 group-hover:scale-105"
           />
@@ -165,10 +159,10 @@ function MovieCard({
             className="font-bold text-white text-sm leading-tight"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
-            {movie.title}
+            {movie.showtime_title}
           </p>
-          {movie.releaseDate && (
-            <p className="text-[11px] text-white/55">{movie.releaseDate}</p>
+          {movie.release_date && (
+            <p className="text-[11px] text-white/55">{movie.release_date}</p>
           )}
         </div>
 
@@ -183,7 +177,7 @@ function MovieCard({
       {/* Card body */}
       <div className="flex flex-col gap-2 px-3 py-2.5">
         <span className="inline-flex text-[11px] font-medium px-2.5 py-1 rounded-full bg-(--color-border-dark)/60 border border-(--color-input-border) text-(--color-text-secondary-dark) w-fit">
-          {movie.genre}
+          {movie.genre ?? "—"}
         </span>
         <div className="flex items-center gap-1.5 text-xs text-(--color-text-secondary-dark)">
           <svg
@@ -236,22 +230,13 @@ function Pagination({
 
   return (
     <div className="flex items-center justify-center gap-1 py-5">
-      {/* First / Prev */}
       <button
         type="button"
         className={nav}
         disabled={current === 1}
         onClick={() => onChange(1)}
       >
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <polyline points="11 17 6 12 11 7" />
           <polyline points="18 17 13 12 18 7" />
         </svg>
@@ -262,20 +247,11 @@ function Pagination({
         disabled={current === 1}
         onClick={() => onChange(current - 1)}
       >
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <polyline points="15 18 9 12 15 6" />
         </svg>
       </button>
 
-      {/* Page numbers */}
       {Array.from({ length: total }, (_, i) => i + 1).map((p) => (
         <button
           key={p}
@@ -287,22 +263,13 @@ function Pagination({
         </button>
       ))}
 
-      {/* Next / Last */}
       <button
         type="button"
         className={nav}
         disabled={current === total}
         onClick={() => onChange(current + 1)}
       >
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </button>
@@ -312,15 +279,7 @@ function Pagination({
         disabled={current === total}
         onClick={() => onChange(total)}
       >
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <polyline points="13 17 18 12 13 7" />
           <polyline points="6 17 11 12 6 7" />
         </svg>
@@ -333,19 +292,25 @@ function Pagination({
 
 export default function MovieManagementPage() {
   const navigate = useNavigate();
-  const [movies, setMovies] = useState<MovieListItem[]>(MOVIES);
+  const { movies, loading, error, fetchMovies, createMovie, updateMovie, deleteMovie } =
+    useMovieStore();
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [page, setPage] = useState(1);
   const [movieModalOpen, setMovieModalOpen] = useState(false);
-  const [editingMovie, setEditingMovie] = useState<MovieListItem | null>(null);
+  const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
+
+  useEffect(() => {
+    void fetchMovies();
+  }, []);
 
   const openAddMovie = () => {
     setEditingMovie(null);
     setMovieModalOpen(true);
   };
 
-  const openEditMovie = (movie: MovieListItem) => {
+  const openEditMovie = (movie: Movie) => {
     setEditingMovie(movie);
     setMovieModalOpen(true);
   };
@@ -363,47 +328,29 @@ export default function MovieManagementPage() {
     releaseDate: string;
   }) => {
     const durationNum = Number(form.duration);
+    const data: MovieFormData = {
+      title: form.title,
+      genre: form.genre || undefined,
+      duration: Number.isFinite(durationNum) ? durationNum : 0,
+      description: form.description || undefined,
+      releaseDate: form.releaseDate || undefined,
+    };
     if (editingMovie) {
-      setMovies((prev) =>
-        prev.map((m) =>
-          m.id === editingMovie.id
-            ? {
-                ...m,
-                title: form.title,
-                genre: form.genre,
-                duration: Number.isFinite(durationNum)
-                  ? durationNum
-                  : m.duration,
-                description: form.description,
-                releaseDate: form.releaseDate,
-              }
-            : m,
-        ),
-      );
+      void updateMovie(editingMovie.show_id, data).then(() => fetchMovies());
     } else {
-      setMovies((prev) => {
-        const nextId = Math.max(0, ...prev.map((m) => m.id)) + 1;
-        return [
-          ...prev,
-          {
-            id: nextId,
-            title: form.title,
-            genre: form.genre,
-            duration: Number.isFinite(durationNum) ? durationNum : 0,
-            status: "Active",
-            description: form.description,
-            releaseDate: form.releaseDate,
-            posterUrl: DEFAULT_POSTER_URL,
-          },
-        ];
-      });
+      void createMovie(data).then(() => fetchMovies());
     }
+  };
+
+  const handleDelete = (id: number) => {
+    if (!window.confirm("Delete this movie? This cannot be undone.")) return;
+    void deleteMovie(id);
   };
 
   const filtered = movies.filter((m) => {
     const matchSearch =
-      m.title.toLowerCase().includes(search.toLowerCase()) ||
-      m.genre.toLowerCase().includes(search.toLowerCase());
+      m.showtime_title.toLowerCase().includes(search.toLowerCase()) ||
+      (m.genre ?? "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "All" || m.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -423,6 +370,13 @@ export default function MovieManagementPage() {
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden">
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-(--color-surface-panel)">
+          {/* ── Error banner ── */}
+          {error && (
+            <div className="mx-5 mt-3 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+              {error}
+            </div>
+          )}
+
           {/* ── Toolbar ── */}
           <div className="flex shrink-0 items-center justify-between gap-3 px-5 py-3">
             <div className="flex items-center gap-4">
@@ -488,7 +442,16 @@ export default function MovieManagementPage() {
 
           {/* ── Card Grid ── */}
           <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-2">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="grid grid-cols-4 gap-3.5">
+                {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-(--color-input-border)/50 bg-(--color-border-dark) aspect-2/3 animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="flex min-h-40 items-center justify-center text-sm text-(--color-text-muted-dark)">
                 No movies found.
               </div>
@@ -496,14 +459,13 @@ export default function MovieManagementPage() {
               <div className="grid grid-cols-4 gap-3.5">
                 {paginated.map((movie) => (
                   <MovieCard
-                    key={movie.id}
+                    key={movie.show_id}
                     movie={movie}
                     onEdit={() => openEditMovie(movie)}
                     onSchedule={() => navigate("/admin/screens")}
-                    onDelete={() => console.log("Delete", movie.id)}
+                    onDelete={() => handleDelete(movie.show_id)}
                   />
                 ))}
-                {/* Empty slots to keep the grid height stable */}
                 {Array.from({ length: emptySlots }).map((_, i) => (
                   <EmptyCard key={`empty-${i}`} />
                 ))}
@@ -516,19 +478,19 @@ export default function MovieManagementPage() {
       </div>
 
       <MovieFormModal
-        key={editingMovie?.id ?? "new-movie"}
+        key={editingMovie?.show_id ?? "new-movie"}
         isOpen={movieModalOpen}
         onClose={closeMovieModal}
         onSave={handleSaveMovie}
         initialData={
           editingMovie
             ? {
-                title: editingMovie.title,
-                genre: editingMovie.genre,
+                title: editingMovie.showtime_title,
+                genre: editingMovie.genre ?? "",
                 duration: editingMovie.duration,
-                description: editingMovie.description ?? "",
-                releaseDate: editingMovie.releaseDate ?? "",
-                poster: editingMovie.poster ?? null,
+                description: editingMovie.showtime_descript ?? "",
+                releaseDate: editingMovie.release_date ?? "",
+                poster: null,
               }
             : null
         }

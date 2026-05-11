@@ -1,8 +1,5 @@
 import { useState, type ChangeEvent } from "react";
-import { MOVIES as MOVIE_LIST } from "../../store/tempMoiveData";
-import { SCREENS } from "../../store/tempScreenData";
 
-const MOVIES = MOVIE_LIST.map((m) => m.title);
 const SEAT_PLANS = ["Standard 150 seats", "VIP 60 seats", "Standard 200 seats"];
 const SEAT_PRICES = [
   "Weekend price",
@@ -26,7 +23,7 @@ const DEFAULT_FORM = {
   movie: "",
   language: "TH/EN",
   format: "",
-  screen: "Screen 1",
+  screen: "",
   date: "",
   selectedSlot: "10.30",
   startTime: "10.00",
@@ -43,6 +40,8 @@ type ScreenFormModalProps = {
   onSave: (form: ScreenFormState) => void;
   initialData?: Partial<ScreenFormState> | null;
   isEdit?: boolean;
+  movies: string[];
+  screens: string[];
 };
 
 function ScreenFormModal({
@@ -51,6 +50,8 @@ function ScreenFormModal({
   onSave,
   initialData = null,
   isEdit = false,
+  movies,
+  screens,
 }: ScreenFormModalProps) {
   const [form, setForm] = useState<ScreenFormState>(() => ({
     ...DEFAULT_FORM,
@@ -102,7 +103,7 @@ function ScreenFormModal({
                   className={selectClass}
                 >
                   <option value="">Choose a movie</option>
-                  {MOVIES.map((m) => (
+                  {movies.map((m) => (
                     <option key={m}>{m}</option>
                   ))}
                 </select>
@@ -159,7 +160,7 @@ function ScreenFormModal({
                   onChange={set("screen")}
                   className={selectClass}
                 >
-                  {SCREENS.map((s) => (
+                  {screens.map((s) => (
                     <option key={s}>{s}</option>
                   ))}
                 </select>

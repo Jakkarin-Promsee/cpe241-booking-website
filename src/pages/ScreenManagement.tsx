@@ -1,52 +1,65 @@
-import { useState } from "react";
-import {
-  THEATERS,
-  SCREENS,
-  MOVIE_PALETTE_KEY,
-  INITIAL_SHOWTIMES,
-} from "../store/tempScreenData";
+import { useEffect, useState } from "react";
+import { useShowingStore, type Showing, type ShowingFormData } from "../store/useShowingStore";
+import { useMovieStore } from "../store/useMovieStore";
 import ScreenFormModal, {
   type ScreenFormState,
 } from "../components/editModal/ScreenFormModal";
 
-type ShowtimeRow = (typeof INITIAL_SHOWTIMES)[number] & {
+// ─── Local row type (adapted from Showing) ────────────────────────────────────
+
+type ShowtimeRow = {
+  id: number;
+  showId: number;
+  screen: string;
+  movie: string;
+  startHour: number;
+  durationMin: number;
+  status: string;
   language?: string;
-  format?: string;
   date?: string;
-  seatPlan?: string;
-  seatPrice?: string;
 };
 
-function hourToTimeStr(startHour: number) {
-  const h = Math.floor(startHour);
-  const m = Math.round((startHour % 1) * 60);
-  return `${String(h).padStart(2, "0")}.${String(m).padStart(2, "0")}`;
+// ─── Palette key based on show_id ────────────────────────────────────────────
+
+const PALETTE_KEYS = ["a", "b", "c", "d", "e", "f"] as const;
+type PaletteKey = (typeof PALETTE_KEYS)[number];
+
+function getPaletteKey(showId: number): PaletteKey {
+  return PALETTE_KEYS[showId % PALETTE_KEYS.length];
 }
 
-function showtimeToFormFields(
-  s: ShowtimeRow,
-  fallbackDate: string,
-): ScreenFormState {
-  const startTime = hourToTimeStr(s.startHour);
-  const endTotal = s.startHour + s.durationMin / 60;
-  const endH = Math.floor(endTotal);
-  const endM = Math.round((endTotal % 1) * 60);
-  const endTime = `${String(endH).padStart(2, "0")}.${String(endM).padStart(2, "0")}`;
+// ─── Adapters ─────────────────────────────────────────────────────────────────
+
+function parseApiTime(t: string): number {
+  const parts = t.split(":");
+  const h = Number(parts[0]) || 0;
+  const m = Number(parts[1]) || 0;
+  return h + m / 60;
+}
+
+function showingToRow(s: Showing): ShowtimeRow {
+  const startHour = parseApiTime(s.start_time);
+  const endHour = parseApiTime(s.end_time);
   return {
-    movie: s.movie ?? "",
-    language: s.language ?? "TH/EN",
-    format: s.format ?? "",
-    screen: s.screen ?? "Screen 1",
-    date: s.date ?? fallbackDate ?? "",
-    selectedSlot: startTime,
-    startTime,
-    endTime,
-    seatPlan: s.seatPlan ?? "Standard 150 seats",
-    seatPrice: s.seatPrice ?? "Weekend price",
+    id: s.showing_id,
+    showId: s.show_id,
+    screen: s.venues_name,
+    movie: s.movie_title,
+    startHour,
+    durationMin: Math.round((endHour - startHour) * 60),
+    status: s.status,
+    language: s.language ?? undefined,
+    date: s.showtime_date,
   };
 }
 
-function parseTimeToHour(str: string) {
+function hourToTimeStr(h: number): string {
+  const hh = Math.floor(h);
+  const mm = Math.round((h % 1) * 60);
+  return `${String(hh).padStart(2, "0")}.${String(mm).padStart(2, "0")}`;
+}
+
+function parseTimeToHour(str: string): number {
   if (!str || typeof str !== "string") return 0;
   const normalized = str.trim().replace(":", ".");
   const parts = normalized.split(".");
@@ -55,48 +68,55 @@ function parseTimeToHour(str: string) {
   return h + m / 60;
 }
 
-function formToShowtimePatch(
-  form: ScreenFormState,
-  existing: ShowtimeRow | null,
-) {
-  const startHour = parseTimeToHour(form.startTime);
-  const endHour = parseTimeToHour(form.endTime);
-  let durationMin = Math.round((endHour - startHour) * 60);
-  if (!Number.isFinite(durationMin) || durationMin < 0) {
-    durationMin = existing?.durationMin ?? 90;
-  }
-  if (durationMin === 0 && existing?.durationMin) {
-    durationMin = existing.durationMin;
-  }
+function toApiTime(t: string): string {
+  const normalized = t.trim().replace(".", ":");
+  const parts = normalized.split(":");
+  const h = String(Number(parts[0]) || 0).padStart(2, "0");
+  const m = String(Number(parts[1]) || 0).padStart(2, "0");
+  return `${h}:${m}:00`;
+}
+
+function showtimeToFormFields(s: ShowtimeRow): Partial<ScreenFormState> {
+  const startTime = hourToTimeStr(s.startHour);
+  const endHour = s.startHour + s.durationMin / 60;
+  const endTime = hourToTimeStr(endHour);
   return {
-    screen: form.screen,
-    movie: form.movie,
-    startHour,
-    durationMin,
-    language: form.language,
-    format: form.format,
-    date: form.date,
-    seatPlan: form.seatPlan,
-    seatPrice: form.seatPrice,
+    movie: s.movie,
+    language: s.language ?? "TH/EN",
+    format: "",
+    screen: s.screen,
+    date: s.date ?? "",
+    selectedSlot: startTime,
+    startTime,
+    endTime,
+    seatPlan: "Standard 150 seats",
+    seatPrice: "Weekend price",
   };
 }
 
+// ─── Timeline layout constants ────────────────────────────────────────────────
+
 const HOUR_START = 10;
 const HOUR_END = 22;
-const HOURS = Array.from(
-  { length: HOUR_END - HOUR_START },
-  (_, i) => HOUR_START + i,
-);
-
+const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
 const TOTAL_HOURS = HOUR_END - HOUR_START;
-const LABEL_COL_WIDTH = 80; // px
-const CELL_WIDTH = 95; // px per hour
-/** Taller rows so the theater schedule timeline is easier to read */
+const LABEL_COL_WIDTH = 80;
+const CELL_WIDTH = 95;
 const TIMELINE_ROW_HEIGHT_PX = 88;
 
 function toPercent(hour: number) {
   return ((hour - HOUR_START) / TOTAL_HOURS) * 100;
 }
+
+/** Local calendar date as YYYY-MM-DD for `<input type="date">`. */
+function formatLocalDateYmd(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// ─── ShowtimeBlock ────────────────────────────────────────────────────────────
 
 function ShowtimeBlock({
   showtime,
@@ -107,7 +127,7 @@ function ShowtimeBlock({
 }) {
   const leftPct = toPercent(showtime.startHour);
   const widthPct = (showtime.durationMin / 60 / TOTAL_HOURS) * 100;
-  const paletteKey = MOVIE_PALETTE_KEY[showtime.movie] ?? "a";
+  const paletteKey: PaletteKey = getPaletteKey(showtime.showId);
 
   return (
     <div
@@ -154,12 +174,18 @@ function ShowtimeBlock({
   );
 }
 
+// ─── TimelineGrid ─────────────────────────────────────────────────────────────
+
 function TimelineGrid({
   showtimes,
+  screens,
   onEditShowtime,
+  loading,
 }: {
   showtimes: ShowtimeRow[];
+  screens: string[];
   onEditShowtime: (s: ShowtimeRow) => void;
+  loading: boolean;
 }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-(--color-border-dark)">
@@ -179,57 +205,62 @@ function TimelineGrid({
         </div>
 
         {/* Screen rows */}
-        {SCREENS.map((screen) => {
-          const rowShowtimes = showtimes.filter((s) => s.screen === screen);
-          return (
-            <div
-              key={screen}
-              className="flex border-b border-(--color-border-mid) last:border-b-0"
-              style={{ height: TIMELINE_ROW_HEIGHT_PX }}
-            >
-              {/* Screen label */}
+        {loading ? (
+          <div
+            className="animate-pulse bg-(--color-surface-overlay)"
+            style={{ height: TIMELINE_ROW_HEIGHT_PX }}
+          />
+        ) : (
+          screens.map((screen) => {
+            const rowShowtimes = showtimes.filter((s) => s.screen === screen);
+            return (
               <div
-                style={{ width: LABEL_COL_WIDTH, minWidth: LABEL_COL_WIDTH }}
-                className="flex items-center justify-center text-xs font-semibold shrink-0 bg-(--color-surface-panel) border-r border-(--color-border-dark) text-(--color-text-secondary-dark)"
+                key={screen}
+                className="flex border-b border-(--color-border-mid) last:border-b-0"
+                style={{ height: TIMELINE_ROW_HEIGHT_PX }}
               >
-                {screen}
-              </div>
+                {/* Screen label */}
+                <div
+                  style={{ width: LABEL_COL_WIDTH, minWidth: LABEL_COL_WIDTH }}
+                  className="flex items-center justify-center text-xs font-semibold shrink-0 bg-(--color-surface-panel) border-r border-(--color-border-dark) text-(--color-text-secondary-dark)"
+                >
+                  {screen}
+                </div>
 
-              {/* Timeline cells */}
-              <div className="relative flex-1 bg-(--color-surface-overlay)">
-                {/* Vertical hour lines */}
-                {HOURS.map((h, i) => (
-                  <div
-                    key={h}
-                    className="absolute top-0 bottom-0 border-l border-(--color-border-mid)"
-                    style={{ left: `${(i / TOTAL_HOURS) * 100}%` }}
-                  />
-                ))}
-                {/* Showtime blocks */}
-                {rowShowtimes.map((s) => (
-                  <ShowtimeBlock
-                    key={s.id}
-                    showtime={s}
-                    onEdit={onEditShowtime}
-                  />
-                ))}
+                {/* Timeline cells */}
+                <div className="relative flex-1 bg-(--color-surface-overlay)">
+                  {HOURS.map((h, i) => (
+                    <div
+                      key={h}
+                      className="absolute top-0 bottom-0 border-l border-(--color-border-mid)"
+                      style={{ left: `${(i / TOTAL_HOURS) * 100}%` }}
+                    />
+                  ))}
+                  {rowShowtimes.map((s) => (
+                    <ShowtimeBlock key={s.id} showtime={s} onEdit={onEditShowtime} />
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
 }
 
+// ─── ShowtimesTable ───────────────────────────────────────────────────────────
+
 function ShowtimesTable({
   showtimes,
   onDelete,
   onEdit,
+  loading,
 }: {
   showtimes: ShowtimeRow[];
   onDelete: (id: number) => void;
   onEdit: (s: ShowtimeRow) => void;
+  loading: boolean;
 }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-(--color-border-dark)">
@@ -254,96 +285,113 @@ function ShowtimesTable({
           </tr>
         </thead>
         <tbody>
-          {showtimes.map((s) => {
-            const startH = Math.floor(s.startHour);
-            const startM = Math.round((s.startHour % 1) * 60);
-            const endTotal = s.startHour + s.durationMin / 60;
-            const endH = Math.floor(endTotal);
-            const endM = Math.round((endTotal % 1) * 60);
-            const fmt = (h: number, m: number) =>
-              `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-
-            return (
-              <tr
-                key={s.id}
-                className="border-b border-(--color-border-mid) transition-colors hover:bg-(--color-table-row-hover)"
-              >
-                <td className="px-4 py-3 border text-sm font-medium border-(--color-border-mid) text-(--color-text-primary-dark)">
-                  {s.movie}
-                </td>
-                <td className="px-4 py-3 border text-sm border-(--color-border-mid) text-(--color-text-secondary-dark)">
-                  {fmt(startH, startM)}
-                </td>
-                <td className="px-4 py-3 border text-sm border-(--color-border-mid) text-(--color-text-secondary-dark)">
-                  {fmt(endH, endM)}
-                </td>
-                <td className="px-4 py-3 border text-sm border-(--color-border-mid) text-(--color-text-secondary-dark)">
-                  —
-                </td>
-                <td className="px-4 py-3 border text-sm font-semibold border-(--color-border-mid) text-(--color-text-primary-dark)">
-                  {s.status}
-                </td>
-                <td className="px-4 py-3 border border-(--color-border-mid)">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      title="Edit"
-                      aria-label="Edit showtime"
-                      onClick={() => onEdit(s)}
-                      className="group inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-(--color-pill-idle-bg-hover)"
-                    >
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        className="text-(--color-text-secondary-dark) group-hover:text-(--color-topbar-dark-text)"
-                      >
-                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      title="Delete"
-                      aria-label="Delete showtime"
-                      onClick={() => onDelete(s.id)}
-                      className="group inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-(--color-danger-bg-hover)"
-                    >
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        className="text-(--color-text-secondary-dark) group-hover:text-(--color-danger-icon-hover)"
-                      >
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
-                        <path d="M10 11v6M14 11v6" />
-                        <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <tr key={i}>
+                {Array.from({ length: 6 }).map((__, j) => (
+                  <td
+                    key={j}
+                    className="px-4 py-3 border border-(--color-border-mid)"
+                  >
+                    <div className="h-4 rounded animate-pulse bg-(--color-border-dark)" />
+                  </td>
+                ))}
               </tr>
-            );
-          })}
+            ))
+          ) : (
+            <>
+              {showtimes.map((s) => {
+                const startH = Math.floor(s.startHour);
+                const startM = Math.round((s.startHour % 1) * 60);
+                const endTotal = s.startHour + s.durationMin / 60;
+                const endH = Math.floor(endTotal);
+                const endM = Math.round((endTotal % 1) * 60);
+                const fmt = (h: number, m: number) =>
+                  `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
-          {showtimes.length === 0 && (
-            <tr>
-              <td
-                colSpan={6}
-                className="px-4 py-10 text-center text-sm text-(--color-text-disabled-dark)"
-              >
-                No showtimes for this theater and date.
-              </td>
-            </tr>
+                return (
+                  <tr
+                    key={s.id}
+                    className="border-b border-(--color-border-mid) transition-colors hover:bg-(--color-table-row-hover)"
+                  >
+                    <td className="px-4 py-3 border text-sm font-medium border-(--color-border-mid) text-(--color-text-primary-dark)">
+                      {s.movie}
+                    </td>
+                    <td className="px-4 py-3 border text-sm border-(--color-border-mid) text-(--color-text-secondary-dark)">
+                      {fmt(startH, startM)}
+                    </td>
+                    <td className="px-4 py-3 border text-sm border-(--color-border-mid) text-(--color-text-secondary-dark)">
+                      {fmt(endH, endM)}
+                    </td>
+                    <td className="px-4 py-3 border text-sm border-(--color-border-mid) text-(--color-text-secondary-dark)">
+                      —
+                    </td>
+                    <td className="px-4 py-3 border text-sm font-semibold border-(--color-border-mid) text-(--color-text-primary-dark)">
+                      {s.status}
+                    </td>
+                    <td className="px-4 py-3 border border-(--color-border-mid)">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          title="Edit"
+                          aria-label="Edit showtime"
+                          onClick={() => onEdit(s)}
+                          className="group inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-(--color-pill-idle-bg-hover)"
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            className="text-(--color-text-secondary-dark) group-hover:text-(--color-topbar-dark-text)"
+                          >
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          title="Delete"
+                          aria-label="Delete showtime"
+                          onClick={() => onDelete(s.id)}
+                          className="group inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-(--color-danger-bg-hover)"
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            className="text-(--color-text-secondary-dark) group-hover:text-(--color-danger-icon-hover)"
+                          >
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                            <path d="M10 11v6M14 11v6" />
+                            <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {showtimes.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-4 py-10 text-center text-sm text-(--color-text-disabled-dark)"
+                  >
+                    No showtimes for this theater and date.
+                  </td>
+                </tr>
+              )}
+            </>
           )}
         </tbody>
       </table>
@@ -351,16 +399,47 @@ function ShowtimesTable({
   );
 }
 
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function ScreenManagementPage() {
-  const [selectedTheater, setSelectedTheater] = useState("Theater 1");
+  const {
+    showings,
+    venues,
+    loading,
+    error,
+    fetchVenues,
+    fetchShowings,
+    createShowing,
+    updateShowing,
+    deleteShowing,
+  } = useShowingStore();
+
+  const { movies, fetchMovies } = useMovieStore();
+
+  const [selectedTheater, setSelectedTheater] = useState("");
   const [theaterOpen, setTheaterOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [showtimes, setShowtimes] = useState<ShowtimeRow[]>(INITIAL_SHOWTIMES);
+  const [selectedDate, setSelectedDate] = useState(formatLocalDateYmd);
   const [showtimeModalOpen, setShowtimeModalOpen] = useState(false);
-  const [editingShowtime, setEditingShowtime] = useState<ShowtimeRow | null>(
-    null,
-  );
+  const [editingShowtime, setEditingShowtime] = useState<ShowtimeRow | null>(null);
   const [showtimeFormKey, setShowtimeFormKey] = useState(0);
+
+  // Load venues and movies once on mount
+  useEffect(() => {
+    void fetchVenues();
+    void fetchMovies();
+  }, []);
+
+  // Re-fetch showings when theater or date filter changes
+  useEffect(() => {
+    const venueObj = selectedTheater
+      ? venues.find((v) => v.venues_name === selectedTheater)
+      : undefined;
+    void fetchShowings(venueObj?.venues_id, selectedDate || undefined);
+  }, [selectedTheater, selectedDate]);
+
+  const rows: ShowtimeRow[] = showings.map(showingToRow);
+  const screenNames = venues.map((v) => v.venues_name);
+  const movieTitles = movies.map((m) => m.showtime_title);
 
   const openAddShowtime = () => {
     setEditingShowtime(null);
@@ -380,32 +459,51 @@ export default function ScreenManagementPage() {
   };
 
   const handleSaveShowtime = (form: ScreenFormState) => {
-    const patch = formToShowtimePatch(form, editingShowtime);
+    const movie = movies.find((m) => m.showtime_title === form.movie);
+    const venue = venues.find((v) => v.venues_name === form.screen);
+    if (!movie || !venue) return;
+
+    const data: ShowingFormData = {
+      showId: movie.show_id,
+      venueId: venue.venues_id,
+      showtimeDate: form.date,
+      startTime: toApiTime(form.startTime),
+      endTime: toApiTime(form.endTime),
+      language: form.language || undefined,
+      seatPrice: form.seatPrice,
+      status: editingShowtime?.status ?? "Ontime",
+    };
+
+    const refetch = () => {
+      const venueObj = selectedTheater
+        ? venues.find((v) => v.venues_name === selectedTheater)
+        : undefined;
+      void fetchShowings(venueObj?.venues_id, selectedDate || undefined);
+    };
+
     if (editingShowtime) {
-      setShowtimes((prev) =>
-        prev.map((s) => (s.id === editingShowtime.id ? { ...s, ...patch } : s)),
-      );
+      void updateShowing(editingShowtime.id, data).then(refetch);
     } else {
-      setShowtimes((prev) => {
-        const nextId = Math.max(0, ...prev.map((s) => s.id)) + 1;
-        return [
-          ...prev,
-          {
-            id: nextId,
-            status: "Active",
-            ...patch,
-          },
-        ];
-      });
+      void createShowing(data).then(refetch);
     }
   };
 
   const handleDelete = (id: number) => {
-    setShowtimes((prev) => prev.filter((s) => s.id !== id));
+    if (!window.confirm("Delete this showtime?")) return;
+    void deleteShowing(id);
   };
+
+  const selectedVenueName =
+    selectedTheater || (venues[0]?.venues_name ?? "");
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto bg-(--color-surface-panel) p-5">
+      {error && (
+        <div className="rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+          {error}
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* Theater selector */}
@@ -416,9 +514,9 @@ export default function ScreenManagementPage() {
           <div className="relative">
             <button
               onClick={() => setTheaterOpen((o) => !o)}
-              className="flex items-center gap-2 rounded px-4 py-1.5 text-sm min-w-[130px] justify-between bg-(--color-border-dark) border border-(--color-input-border) text-(--color-text-primary-dark)"
+              className="flex items-center gap-2 rounded px-4 py-1.5 text-sm min-w-[160px] justify-between bg-(--color-border-dark) border border-(--color-input-border) text-(--color-text-primary-dark)"
             >
-              {selectedTheater}
+              {selectedTheater || "All Venues"}
               <svg
                 width="14"
                 height="14"
@@ -434,17 +532,33 @@ export default function ScreenManagementPage() {
             </button>
             {theaterOpen && (
               <div className="absolute top-full left-0 mt-1 rounded shadow-lg z-20 min-w-full bg-(--color-border-dark) border border-(--color-input-border)">
-                {THEATERS.map((t) => (
+                <div
+                  onClick={() => {
+                    setSelectedTheater("");
+                    setTheaterOpen(false);
+                  }}
+                  className={`px-4 py-2 text-sm cursor-pointer transition-colors hover:bg-(--color-pill-idle-bg-hover) ${
+                    selectedTheater === ""
+                      ? "font-semibold text-(--color-topbar-dark-text)"
+                      : "text-(--color-text-primary-dark)"
+                  }`}
+                >
+                  All Venues
+                </div>
+                {venues.map((v) => (
                   <div
-                    key={t}
+                    key={v.venues_id}
                     onClick={() => {
-                      setSelectedTheater(t);
+                      setSelectedTheater(v.venues_name);
                       setTheaterOpen(false);
                     }}
-                    className={`px-4 py-2 text-sm cursor-pointer transition-colors hover:bg-(--color-pill-idle-bg-hover)
-                      ${t === selectedTheater ? "font-semibold text-(--color-topbar-dark-text)" : "text-(--color-text-primary-dark)"}`}
+                    className={`px-4 py-2 text-sm cursor-pointer transition-colors hover:bg-(--color-pill-idle-bg-hover) ${
+                      v.venues_name === selectedTheater
+                        ? "font-semibold text-(--color-topbar-dark-text)"
+                        : "text-(--color-text-primary-dark)"
+                    }`}
                   >
-                    {t}
+                    {v.venues_name}
                   </div>
                 ))}
               </div>
@@ -458,7 +572,6 @@ export default function ScreenManagementPage() {
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
           className="rounded px-3 py-1.5 text-sm outline-none transition bg-(--color-input-bg) border border-(--color-input-border) text-(--color-input-text) focus:border-(--color-input-border-focus)"
-          placeholder="Select Date"
         />
 
         <div className="flex-1" />
@@ -473,17 +586,23 @@ export default function ScreenManagementPage() {
         </button>
       </div>
 
-      {/* Theater schedule (timeline) — flex-shrink-0 so it keeps full height */}
+      {/* Theater schedule (timeline) */}
       <div className="shrink-0">
-        <TimelineGrid showtimes={showtimes} onEditShowtime={openEditShowtime} />
+        <TimelineGrid
+          showtimes={rows}
+          screens={screenNames}
+          onEditShowtime={openEditShowtime}
+          loading={loading}
+        />
       </div>
 
-      {/* Detail table — full natural height; scroll the page, not a fixed table pane */}
+      {/* Detail table */}
       <div className="shrink-0">
         <ShowtimesTable
-          showtimes={showtimes}
+          showtimes={rows}
           onDelete={handleDelete}
           onEdit={openEditShowtime}
+          loading={loading}
         />
       </div>
 
@@ -493,12 +612,15 @@ export default function ScreenManagementPage() {
         onClose={closeShowtimeModal}
         onSave={handleSaveShowtime}
         isEdit={!!editingShowtime}
+        movies={movieTitles}
+        screens={screenNames}
         initialData={
           editingShowtime
-            ? showtimeToFormFields(editingShowtime, selectedDate)
-            : selectedDate
-              ? { date: selectedDate }
-              : null
+            ? showtimeToFormFields(editingShowtime)
+            : {
+                date: selectedDate || "",
+                screen: selectedVenueName,
+              }
         }
       />
     </div>

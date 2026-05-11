@@ -1,37 +1,41 @@
-import { useState, type ChangeEvent } from "react";
-import { BOOKINGS } from "../store/tempBookingData";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useBookingStore, type Booking, type BookingFilters } from "../store/useBookingStore";
 
 const ITEMS_PER_PAGE = 6;
 
-type BookingStatusKey = "Confirmed" | "Pending" | "Cancelled";
+type BookingStatus = Booking["status"];
 
-const STATUS_STYLES: Record<BookingStatusKey, string> = {
-  Confirmed: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
-  Pending: "bg-amber-400/15 text-amber-700 dark:text-amber-400",
-  Cancelled: "bg-red-500/10 text-red-600 dark:text-red-400",
+const STATUS_STYLES: Record<BookingStatus, string> = {
+  Successful: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
+  Booking:    "bg-amber-400/15 text-amber-700 dark:text-amber-400",
+  Checkout:   "bg-blue-400/15 text-blue-700 dark:text-blue-400",
+  Cancel:     "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
-const DOT_STYLES: Record<BookingStatusKey, string> = {
-  Confirmed: "bg-emerald-500",
-  Pending: "bg-amber-500",
-  Cancelled: "bg-red-500",
+const DOT_STYLES: Record<BookingStatus, string> = {
+  Successful: "bg-emerald-500",
+  Booking:    "bg-amber-500",
+  Checkout:   "bg-blue-500",
+  Cancel:     "bg-red-500",
 };
 
-function StatusBadge({ status }: { status: BookingStatusKey }) {
+function StatusBadge({ status }: { status: BookingStatus }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[status]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[status] ?? ""}`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${DOT_STYLES[status]}`} />
+      <span className={`h-1.5 w-1.5 rounded-full ${DOT_STYLES[status] ?? ""}`} />
       {status}
     </span>
   );
 }
 
-function PaymentProofBtn() {
+function PaymentProofBtn({ url }: { url: string }) {
   return (
-    <button
-      type="button"
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
       className="inline-flex items-center gap-1.5 rounded border border-(--color-input-border) bg-(--color-border-dark)/40 px-2 py-1 text-[11px] text-(--color-text-secondary-dark) transition-colors hover:border-(--color-input-border-focus) hover:text-(--color-text-primary-dark)"
     >
       <svg
@@ -50,7 +54,7 @@ function PaymentProofBtn() {
         <polyline points="9,13 11,15 14,12" />
       </svg>
       View
-    </button>
+    </a>
   );
 }
 
@@ -65,7 +69,6 @@ function Pagination({
 }) {
   const navBtn =
     "flex h-8 w-8 items-center justify-center rounded border border-(--color-page-btn-border) text-(--color-page-btn-text) transition-colors hover:bg-(--color-page-btn-bg-hover) disabled:cursor-not-allowed disabled:opacity-30";
-  /* Idle vs active use separate class strings so `text-*` utilities never conflict in the cascade */
   const pageNumIdle =
     "flex h-8 w-8 items-center justify-center rounded border text-sm font-medium transition-colors border-(--color-page-btn-border) text-(--color-page-btn-text) hover:bg-(--color-page-btn-bg-hover)";
   const pageNumActive =
@@ -97,15 +100,7 @@ function Pagination({
           disabled={btn.disabled}
           className={navBtn}
         >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             {btn.icon}
           </svg>
         </button>
@@ -121,10 +116,6 @@ function Pagination({
           {p}
         </button>
       ))}
-
-      {total > 3 && (
-        <span className="px-1 text-(--color-text-muted-dark)">...</span>
-      )}
 
       {[
         {
@@ -150,15 +141,7 @@ function Pagination({
           disabled={btn.disabled}
           className={navBtn}
         >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             {btn.icon}
           </svg>
         </button>
@@ -168,25 +151,38 @@ function Pagination({
 }
 
 export default function BookingPage() {
+  const { bookings, loading, error, fetchBookings, cancelBooking } =
+    useBookingStore();
+
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState("");
   const [bookingStatus, setBookingStatus] = useState("All");
-  const [showStatus, setShowStatus] = useState("All");
   const [page, setPage] = useState(1);
 
-  const filtered = BOOKINGS.filter((b) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      String(b.id).includes(q) ||
-      b.customer.toLowerCase().includes(q) ||
-      b.movie.toLowerCase().includes(q);
-    const matchBooking = bookingStatus === "All" || b.status === bookingStatus;
-    const matchShow = showStatus === "All" || b.status === showStatus;
-    return matchSearch && matchBooking && matchShow;
-  });
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = filtered.slice(
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const filters: BookingFilters = {
+        search: search || undefined,
+        status: bookingStatus !== "All" ? bookingStatus : undefined,
+        dateFrom: dateRange || undefined,
+      };
+      void fetchBookings(filters);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [search, bookingStatus, dateRange]);
+
+  const handleCancel = (id: number) => {
+    if (!window.confirm("Cancel this booking? This cannot be undone.")) return;
+    void cancelBooking(id);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(bookings.length / ITEMS_PER_PAGE));
+  const paginated = bookings.slice(
     (page - 1) * ITEMS_PER_PAGE,
     page * ITEMS_PER_PAGE,
   );
@@ -195,12 +191,12 @@ export default function BookingPage() {
     setSearch(e.target.value);
     setPage(1);
   };
-  const handleBooking = (s: BookingStatusKey | "All") => {
+  const handleBookingStatus = (s: BookingStatus | "All") => {
     setBookingStatus(s);
     setPage(1);
   };
   const handleShow = (e: ChangeEvent<HTMLSelectElement>) => {
-    setShowStatus(e.target.value);
+    setBookingStatus(e.target.value);
     setPage(1);
   };
 
@@ -211,8 +207,23 @@ export default function BookingPage() {
   const rowClass =
     "transition-colors hover:bg-(--color-surface-panel-mid)/40 last:border-b-0";
 
+  const STATUS_OPTIONS: (BookingStatus | "All")[] = [
+    "All",
+    "Successful",
+    "Booking",
+    "Checkout",
+    "Cancel",
+  ];
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden bg-(--color-surface-panel) p-5">
+      {/* Error banner */}
+      {error && (
+        <div className="rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+          {error}
+        </div>
+      )}
+
       {/* Toolbar row 1 */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 rounded border border-(--color-input-border) bg-(--color-input-bg) px-3 py-1.5">
@@ -244,14 +255,12 @@ export default function BookingPage() {
             Booking Status
           </span>
           <div className="flex gap-1">
-            {["Confirmed", "Pending", "Cancelled"].map((s) => (
+            {(["Successful", "Booking", "Checkout", "Cancel"] as const).map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() =>
-                  handleBooking(
-                    bookingStatus === s ? "All" : (s as BookingStatusKey),
-                  )
+                  handleBookingStatus(bookingStatus === s ? "All" : s)
                 }
                 className={`rounded px-3 py-1 text-xs font-semibold transition-colors ${
                   bookingStatus === s
@@ -275,7 +284,10 @@ export default function BookingPage() {
           <input
             type="date"
             value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
+            onChange={(e) => {
+              setDateRange(e.target.value);
+              setPage(1);
+            }}
             className={control}
           />
         </div>
@@ -288,14 +300,13 @@ export default function BookingPage() {
           </span>
           <div className="relative">
             <select
-              value={showStatus}
+              value={bookingStatus}
               onChange={handleShow}
               className={`${control} cursor-pointer appearance-none pr-8`}
             >
-              <option>All</option>
-              <option>Confirmed</option>
-              <option>Pending</option>
-              <option>Cancelled</option>
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </select>
             <svg
               className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-(--color-text-muted-dark)"
@@ -327,6 +338,7 @@ export default function BookingPage() {
                 "Total Amount",
                 "Payment Proof",
                 "Status",
+                "Actions",
               ].map((h) => (
                 <th
                   key={h}
@@ -338,56 +350,84 @@ export default function BookingPage() {
             </tr>
           </thead>
           <tbody>
-            {paginated.map((b) => (
-              <tr key={b.id} className={rowClass}>
-                <td className={tdClass}>
-                  <span className="font-mono text-xs text-(--color-text-secondary-dark)">
-                    {b.id}
-                  </span>
-                </td>
-                <td className={tdClass}>
-                  <span className="font-medium text-(--color-text-primary-dark)">
-                    {b.customer}
-                  </span>
-                </td>
-                <td className={tdClass}>
-                  <span className="block truncate text-(--color-text-secondary-dark)">
-                    {b.movie}
-                  </span>
-                </td>
-                <td className={tdClass}>
-                  <span className="whitespace-nowrap text-xs text-(--color-text-secondary-dark)">
-                    {b.showtime}
-                  </span>
-                </td>
-                <td
-                  className={`${tdClass} text-center text-(--color-text-secondary-dark)`}
-                >
-                  {b.seats}
-                </td>
-                <td className={`${tdClass} text-right`}>
-                  <span className="font-medium tabular-nums text-(--color-text-primary-dark)">
-                    ${b.amount.toFixed(2)}
-                  </span>
-                </td>
-                <td className={`${tdClass} text-center`}>
-                  {b.hasProof ? (
-                    <PaymentProofBtn />
-                  ) : (
-                    <span className="text-(--color-text-muted-dark)">—</span>
-                  )}
-                </td>
-                <td className={tdClass}>
-                  <StatusBadge status={b.status as BookingStatusKey} />
-                </td>
-              </tr>
-            ))}
+            {loading
+              ? Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
+                  <tr key={i} className={rowClass}>
+                    {Array.from({ length: 9 }).map((__, j) => (
+                      <td key={j} className={tdClass}>
+                        <div className="h-4 rounded animate-pulse bg-(--color-border-dark)" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              : paginated.map((b) => {
+                  const showtime = `${b.showtime_date} ${b.start_time.slice(0, 5)}`;
+                  const canCancel =
+                    b.status === "Booking" || b.status === "Checkout";
+                  return (
+                    <tr key={b.booking_id} className={rowClass}>
+                      <td className={tdClass}>
+                        <span className="font-mono text-xs text-(--color-text-secondary-dark)">
+                          {b.booking_id}
+                        </span>
+                      </td>
+                      <td className={tdClass}>
+                        <span className="font-medium text-(--color-text-primary-dark)">
+                          {b.display_name || b.customer}
+                        </span>
+                      </td>
+                      <td className={tdClass}>
+                        <span className="block truncate text-(--color-text-secondary-dark)">
+                          {b.movie}
+                        </span>
+                      </td>
+                      <td className={tdClass}>
+                        <span className="whitespace-nowrap text-xs text-(--color-text-secondary-dark)">
+                          {showtime}
+                        </span>
+                      </td>
+                      <td
+                        className={`${tdClass} text-center text-(--color-text-secondary-dark)`}
+                      >
+                        {b.seats}
+                      </td>
+                      <td className={`${tdClass} text-right`}>
+                        <span className="font-medium tabular-nums text-(--color-text-primary-dark)">
+                          ${b.amount.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className={`${tdClass} text-center`}>
+                        {b.payment_proof_url ? (
+                          <PaymentProofBtn url={b.payment_proof_url} />
+                        ) : (
+                          <span className="text-(--color-text-muted-dark)">—</span>
+                        )}
+                      </td>
+                      <td className={tdClass}>
+                        <StatusBadge status={b.status} />
+                      </td>
+                      <td className={`${tdClass} text-center`}>
+                        {canCancel ? (
+                          <button
+                            type="button"
+                            onClick={() => handleCancel(b.booking_id)}
+                            className="rounded border border-red-500/40 px-2 py-1 text-[11px] font-medium text-red-400 transition-colors hover:bg-red-500/10"
+                          >
+                            Cancel
+                          </button>
+                        ) : (
+                          <span className="text-(--color-text-muted-dark)">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
 
-            {paginated.length === 0 && (
+            {!loading && paginated.length === 0 && (
               <tr>
                 <td
                   className="px-4 py-12 text-center text-sm text-(--color-text-disabled-dark)"
-                  colSpan={8}
+                  colSpan={9}
                 >
                   No bookings found.
                 </td>
