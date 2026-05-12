@@ -1,18 +1,21 @@
-const DEFAULT_API_ORIGIN = 'http://localhost:5000';
+const DEFAULT_API_ORIGIN = "http://localhost:5000";
 
 const API_ORIGIN = (() => {
   const raw = import.meta.env.VITE_API_URL?.trim();
   const base = raw && raw.length > 0 ? raw : DEFAULT_API_ORIGIN;
-  return base.replace(/\/+$/, '');
+  return base.replace(/\/+$/, "");
 })();
 
-const AUTH_STORAGE_KEY = 'cinema-admin-auth';
+const AUTH_STORAGE_KEY = "cinema-admin-auth";
 
 function getToken(): string | null {
   try {
     const stored = localStorage.getItem(AUTH_STORAGE_KEY);
     if (!stored) return null;
-    return (JSON.parse(stored) as { state?: { token?: string } })?.state?.token ?? null;
+    return (
+      (JSON.parse(stored) as { state?: { token?: string } })?.state?.token ??
+      null
+    );
   } catch {
     return null;
   }
@@ -26,10 +29,16 @@ function clearPersistedAuth(): void {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<T> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${API_ORIGIN}${path}`, {
     method,
@@ -39,14 +48,14 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
   if (res.status === 401) {
     clearPersistedAuth();
-    window.location.replace('/admin/login');
-    throw new Error('Unauthorized');
+    window.location.replace("/admin/login");
+    throw new Error("Unauthorized");
   }
 
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
     try {
-      const json = await res.json() as { error?: string; message?: string };
+      const json = (await res.json()) as { error?: string; message?: string };
       message = json.error ?? json.message ?? message;
     } catch {
       // non-JSON error body — keep the default message
@@ -59,8 +68,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 export const api = {
-  get:    <T>(path: string)                => request<T>('GET',    path),
-  post:   <T>(path: string, body: unknown) => request<T>('POST',   path, body),
-  put:    <T>(path: string, body: unknown) => request<T>('PUT',    path, body),
-  delete: <T>(path: string)               => request<T>('DELETE', path),
+  get: <T>(path: string) => request<T>("GET", path),
+  post: <T>(path: string, body: unknown) => request<T>("POST", path, body),
+  put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
+  delete: <T>(path: string) => request<T>("DELETE", path),
 };
