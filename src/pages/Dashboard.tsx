@@ -112,10 +112,15 @@ function TrendChart() {
                   borderRadius: "6px",
                   fontSize: "12px",
                 }}
-                labelFormatter={(day: string) =>
-                  new Date(day + "T00:00:00").toLocaleDateString("en-US", {
-                    weekday: "long", month: "short", day: "numeric",
-                  })
+                labelFormatter={(label) =>
+                  new Date(`${String(label ?? "")}T00:00:00`).toLocaleDateString(
+                    "en-US",
+                    {
+                      weekday: "long",
+                      month: "short",
+                      day: "numeric",
+                    },
+                  )
                 }
                 formatter={(value) => [
                   value != null ? String(value) : "",
