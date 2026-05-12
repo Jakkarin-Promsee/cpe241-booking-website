@@ -5,7 +5,10 @@ import {
   type Movie,
   type MovieFormData,
 } from "../store/useMovieStore";
-import MovieFormModal from "../components/editModal/MovieFormModal";
+import MovieFormModal, {
+  type MovieFormValues,
+} from "../components/editModal/MovieFormModal";
+import { uploadImageToCloudinary } from "../lib/cloudinaryUpload";
 
 const ITEMS_PER_PAGE = 4;
 type EffectiveMovieStatus = "Upcoming" | "Open" | "Ended" | "Hidden";
@@ -449,16 +452,15 @@ export default function MovieManagementPage() {
     setEditingMovie(null);
   };
 
-  const handleSaveMovie = (form: {
-    title: string;
-    genre: string;
-    duration: string | number;
-    description: string;
-    releaseDate: string;
-    endDate: string;
-    hiden: boolean;
-  }) => {
+  const handleSaveMovie = async (form: MovieFormValues) => {
     const durationNum = Number(form.duration);
+    let posterUrl: string | undefined;
+    if (form.poster instanceof File) {
+      posterUrl = await uploadImageToCloudinary(form.poster);
+    } else {
+      posterUrl = editingMovie?.poster_url ?? undefined;
+    }
+
     const data: MovieFormData = {
       title: form.title,
       genre: form.genre || undefined,
@@ -466,14 +468,16 @@ export default function MovieManagementPage() {
       description: form.description || undefined,
       releaseDate: form.releaseDate || undefined,
       endDate: form.endDate || undefined,
+      posterUrl,
       status: form.hiden ? "Hidden" : "Open",
       hiden: form.hiden,
     };
     if (editingMovie) {
-      void updateMovie(editingMovie.show_id, data).then(() => fetchMovies());
+      await updateMovie(editingMovie.show_id, data);
     } else {
-      void createMovie(data).then(() => fetchMovies());
+      await createMovie(data);
     }
+    await fetchMovies();
   };
 
   const handleDelete = (id: number) => {
@@ -674,6 +678,7 @@ export default function MovieManagementPage() {
                 endDate: editingMovie.end_date ?? "",
                 hiden: editingMovie.hiden,
                 poster: null,
+                posterUrl: editingMovie.poster_url ?? "",
               }
             : null
         }
