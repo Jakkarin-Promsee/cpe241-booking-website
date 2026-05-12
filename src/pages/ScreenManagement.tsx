@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   useShowingStore,
@@ -11,6 +11,7 @@ import ScreenFormModal, {
   type ScreenFormState,
 } from "../components/editModal/ScreenFormModal";
 import SeatPricingModal from "../components/editModal/SeatPricingModal";
+import { minutesToTime, parseTimeToMinutes } from "../lib/screenScheduleTime";
 
 // ─── Local row type (adapted from Showing) ────────────────────────────────────
 
@@ -85,16 +86,14 @@ function showingToRow(s: Showing): ShowtimeRow {
   const endHour = parseApiTime(s.end_time);
   const durationMin = Math.max(0, Math.round((endHour - startHour) * 60));
   const movieDurationMin = Math.max(0, Number(s.duration) || 0);
-  // Current DB shape does not store ad/cleanup per showing yet.
-  // Visual split uses defaults and shrinks gracefully if total is shorter.
-  const defaultAd = 15;
-  const defaultCleanup = 10;
-  const remainingAfterMovie = Math.max(0, durationMin - movieDurationMin);
-  const adMinutes = Math.min(defaultAd, remainingAfterMovie);
-  const cleanupMinutes = Math.min(
-    defaultCleanup,
-    Math.max(0, remainingAfterMovie - adMinutes),
-  );
+  const adMinutes =
+    s.ad_minutes != null && !Number.isNaN(Number(s.ad_minutes))
+      ? Math.max(0, Number(s.ad_minutes))
+      : 15;
+  const cleanupMinutes =
+    s.cleanup_minutes != null && !Number.isNaN(Number(s.cleanup_minutes))
+      ? Math.max(0, Number(s.cleanup_minutes))
+      : 10;
   return {
     id: s.showing_id,
     showId: s.show_id,
@@ -129,8 +128,10 @@ function toApiTime(t: string): string {
 
 function showtimeToFormFields(s: ShowtimeRow): Partial<ScreenFormState> {
   const startTime = hourToTimeStr(s.startHour);
-  const endHour = s.startHour + s.durationMin / 60;
-  const endTime = hourToTimeStr(endHour);
+  const startM = parseTimeToMinutes(startTime);
+  const endTime = minutesToTime(
+    startM + s.movieDurationMin + s.adMinutes + s.cleanupMinutes,
+  );
   return {
     movie: s.movie,
     language: s.language ?? "TH/EN",
@@ -140,8 +141,8 @@ function showtimeToFormFields(s: ShowtimeRow): Partial<ScreenFormState> {
     selectedSlot: startTime,
     startTime,
     endTime,
-    adMinutes: 15,
-    bufferMinutes: 10,
+    adMinutes: s.adMinutes,
+    bufferMinutes: s.cleanupMinutes,
   };
 }
 
@@ -615,7 +616,8 @@ export default function ScreenManagementPage() {
   };
 
   const openEditShowtime = (s: ShowtimeRow) => {
-    setEditingShowtime(s);
+    const live = showings.find((x) => x.showing_id === s.id);
+    setEditingShowtime(live ? showingToRow(live) : s);
     setShowtimeFormKey((k) => k + 1);
     setShowtimeModalOpen(true);
   };
@@ -720,6 +722,24 @@ export default function ScreenManagementPage() {
   };
 
   const selectedVenueName = selectedTheater || (venues[0]?.venues_name ?? "");
+
+  const editScreenModalInitial = useMemo(
+    (): Partial<ScreenFormState> | null =>
+      editingShowtime ? showtimeToFormFields(editingShowtime) : null,
+    [editingShowtime],
+  );
+
+  const createScreenModalInitial = useMemo(
+    (): Partial<ScreenFormState> => ({
+      date: selectedDate || "",
+      screen: selectedVenueName,
+      ...(createPrefill ?? {}),
+    }),
+    [selectedDate, selectedVenueName, createPrefill],
+  );
+
+  const screenModalInitial =
+    editScreenModalInitial ?? createScreenModalInitial;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto bg-(--color-surface-panel) p-5">
@@ -841,15 +861,8 @@ export default function ScreenManagementPage() {
         screens={screenNames}
         existingSlots={existingSlots}
         editingShowingId={editingShowtime?.id}
-        initialData={
-          editingShowtime
-            ? showtimeToFormFields(editingShowtime)
-            : {
-                date: selectedDate || "",
-                screen: selectedVenueName,
-                ...createPrefill,
-              }
-        }
+        formResetKey={showtimeFormKey}
+        initialData={screenModalInitial}
       />
 
       {seatPricingModalOpen && (

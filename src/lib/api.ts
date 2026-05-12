@@ -46,12 +46,6 @@ async function request<T>(
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  if (res.status === 401) {
-    clearPersistedAuth();
-    window.location.replace("/admin/login");
-    throw new Error("Unauthorized");
-  }
-
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
     try {
@@ -59,6 +53,10 @@ async function request<T>(
       message = json.error ?? json.message ?? message;
     } catch {
       // non-JSON error body — keep the default message
+    }
+    if (res.status === 401 && token) {
+      clearPersistedAuth();
+      window.location.replace("/admin/login");
     }
     throw new Error(message);
   }

@@ -26,7 +26,7 @@ export interface MovieFormData {
   hiden?: boolean;
 }
 
-function normalizeMovie(raw: Omit<Movie, "hiden"> & { hiden?: boolean }): Movie {
+export function normalizeMovie(raw: Omit<Movie, "hiden"> & { hiden?: boolean }): Movie {
   return {
     ...raw,
     hiden: typeof raw.hiden === "boolean" ? raw.hiden : raw.status === "Hidden",

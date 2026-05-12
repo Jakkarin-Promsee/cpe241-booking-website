@@ -20,6 +20,8 @@ export interface Showing {
   showtime_date: string;
   start_time: string;
   end_time: string;
+  ad_minutes: number;
+  cleanup_minutes: number;
   booking_date: string | null;
   language: string | null;
   movie_title: string;

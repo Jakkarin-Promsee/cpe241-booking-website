@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import type { VenueSeat } from "../../store/useShowingStore";
+import { groupSeatsByRow } from "../../lib/seatRowGrouping";
 
 type SeatPricingModalProps = {
   isOpen: boolean;
@@ -8,18 +9,6 @@ type SeatPricingModalProps = {
   onClose: () => void;
   onConfirm: (seatPricing: Array<{ seatId: number; seatPrice: number }>) => void;
 };
-
-function rowKeyFromSeatNumber(seatNumber: string): string {
-  const match = seatNumber.match(/^[A-Za-z]+/);
-  return (match?.[0] ?? "#").toUpperCase();
-}
-
-function seatSort(a: VenueSeat, b: VenueSeat): number {
-  return a.seat_number.localeCompare(b.seat_number, undefined, {
-    numeric: true,
-    sensitivity: "base",
-  });
-}
 
 export default function SeatPricingModal({
   isOpen,
@@ -39,21 +28,7 @@ export default function SeatPricingModal({
   );
   const mouseHandledSeatIdRef = useRef<number | null>(null);
 
-  const rows = useMemo(() => {
-    const grouped = new Map<string, VenueSeat[]>();
-    for (const seat of seats) {
-      const key = rowKeyFromSeatNumber(seat.seat_number);
-      const existing = grouped.get(key) ?? [];
-      existing.push(seat);
-      grouped.set(key, existing);
-    }
-    return Array.from(grouped.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([row, rowSeats]) => ({
-        row,
-        seats: rowSeats.sort(seatSort),
-      }));
-  }, [seats]);
+  const rows = useMemo(() => groupSeatsByRow(seats), [seats]);
 
   if (!isOpen) return null;
 

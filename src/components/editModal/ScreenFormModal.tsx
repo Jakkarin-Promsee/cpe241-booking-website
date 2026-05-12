@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type WheelEvent } from "react";
+import {
+  minutesToTime,
+  parseTimeToMinutes,
+  screeningEndExceedsTheatreClose,
+} from "../../lib/screenScheduleTime";
 
 const SLOT_START_HOUR = 10;
-const SLOT_END_HOUR = 22;
 const SLOT_STEP_MIN = 30;
+/** Last quick-slot start minute (exclusive of 22:00; with 30m steps this is 21:30). */
+const LAST_QUICK_START_MIN = 22 * 60 - SLOT_STEP_MIN;
 
 const DEFAULT_AD_MINUTES = 15;
 const DEFAULT_BUFFER_MINUTES = 10;
@@ -13,7 +19,7 @@ const DEFAULT_FORM = {
   format: "",
   screen: "",
   date: "",
-  selectedSlot: "10:30",
+  selectedSlot: "10:00",
   startTime: "10:00",
   endTime: "12:00",
   adMinutes: DEFAULT_AD_MINUTES,
@@ -29,11 +35,13 @@ export type ExistingShowtimeSlot = {
   endTime: string;
 };
 
-type ScreenFormModalProps = {
+export type ScreenFormModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSave: (form: ScreenFormState) => void;
   initialData?: Partial<ScreenFormState> | null;
+  /** Bumps whenever the parent opens the modal; used to re-hydrate form from `initialData`. */
+  formResetKey?: number;
   isEdit?: boolean;
   movies: Array<{ title: string; duration: number }>;
   screens: string[];
@@ -41,20 +49,16 @@ type ScreenFormModalProps = {
   editingShowingId?: number;
 };
 
-function parseTimeToMinutes(time: string): number {
-  if (!time) return 0;
-  const [hh, mm] = time.split(":");
-  const h = Number(hh) || 0;
-  const m = Number(mm) || 0;
-  return h * 60 + m;
+function parseOverheadMinutes(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.floor(value));
+  }
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
 }
 
-function minutesToTime(totalMinutes: number): string {
-  const minsInDay = 24 * 60;
-  const normalized = ((totalMinutes % minsInDay) + minsInDay) % minsInDay;
-  const hh = Math.floor(normalized / 60);
-  const mm = normalized % 60;
-  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+function blurNumberInputOnWheel(e: WheelEvent<HTMLInputElement>) {
+  e.currentTarget.blur();
 }
 
 function ScreenFormModal({
@@ -62,16 +66,25 @@ function ScreenFormModal({
   onClose,
   onSave,
   initialData = null,
+  formResetKey = 0,
   isEdit = false,
   movies,
   screens,
   existingSlots,
   editingShowingId,
 }: ScreenFormModalProps) {
+  const initialDataRef = useRef(initialData);
+  initialDataRef.current = initialData;
+
   const [form, setForm] = useState<ScreenFormState>(() => ({
     ...DEFAULT_FORM,
     ...(initialData || {}),
   }));
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm({ ...DEFAULT_FORM, ...(initialDataRef.current || {}) });
+  }, [isOpen, formResetKey]);
 
   const movieDurationMap = useMemo(
     () => new Map(movies.map((m) => [m.title, m.duration])),
@@ -80,9 +93,8 @@ function ScreenFormModal({
 
   const timeSlots = useMemo(() => {
     const start = SLOT_START_HOUR * 60;
-    const end = SLOT_END_HOUR * 60;
     const slots: string[] = [];
-    for (let t = start; t <= end; t += SLOT_STEP_MIN) {
+    for (let t = start; t <= LAST_QUICK_START_MIN; t += SLOT_STEP_MIN) {
       slots.push(minutesToTime(t));
     }
     return slots;
@@ -91,11 +103,14 @@ function ScreenFormModal({
   const set =
     (field: keyof ScreenFormState) =>
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      const raw =
-        field === "adMinutes" || field === "bufferMinutes"
-          ? Number(e.target.value)
-          : e.target.value;
-      setForm((prev) => ({ ...prev, [field]: raw }));
+      if (field === "adMinutes" || field === "bufferMinutes") {
+        const rawStr = (e.target as HTMLInputElement).value.trim();
+        const n = rawStr === "" ? 0 : Number(rawStr);
+        const next = Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+        setForm((prev) => ({ ...prev, [field]: next }));
+        return;
+      }
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
   const selectSlot = (slot: string) =>
@@ -104,14 +119,30 @@ function ScreenFormModal({
   useEffect(() => {
     setForm((prev) => {
       const duration = movieDurationMap.get(prev.movie) ?? 0;
-      const adMinutes = Number(prev.adMinutes) || 0;
-      const bufferMinutes = Number(prev.bufferMinutes) || 0;
+      if (prev.movie && duration <= 0) return prev;
+      const adMinutes = parseOverheadMinutes(prev.adMinutes);
+      const bufferMinutes = parseOverheadMinutes(prev.bufferMinutes);
       const start = parseTimeToMinutes(prev.startTime);
-      const computedEnd = minutesToTime(start + duration + adMinutes + bufferMinutes);
+      const computedEnd = minutesToTime(
+        start + adMinutes + duration + bufferMinutes,
+      );
       if (computedEnd === prev.endTime) return prev;
       return { ...prev, endTime: computedEnd };
     });
   }, [movieDurationMap, form.movie, form.startTime, form.adMinutes, form.bufferMinutes]);
+
+  const runtimeMinutes =
+    (movieDurationMap.get(form.movie) ?? 0) +
+    parseOverheadMinutes(form.adMinutes) +
+    parseOverheadMinutes(form.bufferMinutes);
+
+  const startExceedsClose = useMemo(() => {
+    if (runtimeMinutes <= 0) return false;
+    return screeningEndExceedsTheatreClose(
+      parseTimeToMinutes(form.startTime),
+      runtimeMinutes,
+    );
+  }, [form.startTime, runtimeMinutes]);
 
   const canSave =
     Boolean(form.movie) &&
@@ -119,18 +150,13 @@ function ScreenFormModal({
     Boolean(form.date) &&
     Boolean(form.startTime) &&
     Number(form.adMinutes) >= 0 &&
-    Number(form.bufferMinutes) >= 0;
-
-  const runtimeMinutes =
-    (movieDurationMap.get(form.movie) ?? 0) +
-    (Number(form.adMinutes) || 0) +
-    (Number(form.bufferMinutes) || 0);
+    Number(form.bufferMinutes) >= 0 &&
+    !startExceedsClose;
 
   const conflictingSlots = useMemo(() => {
     const slots = new Set<string>();
     if (!form.screen || !form.date || runtimeMinutes <= 0) return slots;
 
-    const dayEnd = SLOT_END_HOUR * 60;
     const relevant = existingSlots.filter(
       (s) =>
         s.screen === form.screen &&
@@ -140,11 +166,11 @@ function ScreenFormModal({
 
     for (const slot of timeSlots) {
       const start = parseTimeToMinutes(slot);
-      const end = start + runtimeMinutes;
-      if (end > dayEnd) {
+      if (screeningEndExceedsTheatreClose(start, runtimeMinutes)) {
         slots.add(slot);
         continue;
       }
+      const end = start + runtimeMinutes;
       const overlaps = relevant.some((s) => {
         const existingStart = parseTimeToMinutes(s.startTime);
         const existingEnd = parseTimeToMinutes(s.endTime);
@@ -305,7 +331,12 @@ function ScreenFormModal({
                     disabled={disabled}
                     title={
                       disabled
-                        ? "Unavailable: overlaps another show or ends after closing"
+                        ? screeningEndExceedsTheatreClose(
+                            parseTimeToMinutes(slot),
+                            runtimeMinutes,
+                          )
+                          ? "Unavailable: would end after theatre close (21:59)"
+                          : "Unavailable: overlaps another showtime in this hall"
                         : undefined
                     }
                     className={`px-2 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap
@@ -330,7 +361,6 @@ function ScreenFormModal({
               </label>
               <input
                 type="time"
-                step={900}
                 value={form.startTime}
                 onChange={set("startTime")}
                 className={inputClass}
@@ -348,32 +378,48 @@ function ScreenFormModal({
               />
             </div>
           </div>
+          {startExceedsClose ? (
+            <p className="text-xs text-(--color-text-muted-light)">
+              This start time would end after theatre close (21:59). Shorten ads/cleanup,
+              pick an earlier start, or choose a shorter movie.
+            </p>
+          ) : null}
 
           {/* Runtime overheads */}
           <div className="flex gap-3">
             <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+              <label
+                htmlFor="screen-form-ad-minutes"
+                className="text-sm font-semibold text-(--color-text-secondary-light)"
+              >
                 Ads / Trailers (min)
               </label>
               <input
+                id="screen-form-ad-minutes"
                 type="number"
                 min={0}
                 step={5}
                 value={form.adMinutes}
                 onChange={set("adMinutes")}
+                onWheel={blurNumberInputOnWheel}
                 className={inputClass}
               />
             </div>
             <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-sm font-semibold text-(--color-text-secondary-light)">
+              <label
+                htmlFor="screen-form-buffer-minutes"
+                className="text-sm font-semibold text-(--color-text-secondary-light)"
+              >
                 Cleanup Buffer (min)
               </label>
               <input
+                id="screen-form-buffer-minutes"
                 type="number"
                 min={0}
                 step={5}
                 value={form.bufferMinutes}
                 onChange={set("bufferMinutes")}
+                onWheel={blurNumberInputOnWheel}
                 className={inputClass}
               />
             </div>

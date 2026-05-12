@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useVenueStore, type Venue } from "../store/useVenueStore";
+import { groupSeatsByRow } from "../lib/seatRowGrouping";
 
 function VenueForm({
   initial,
@@ -86,28 +87,7 @@ export default function VenueManagementPage() {
   const [editingVenue, setEditingVenue] = useState<Venue | null>(null);
   const [seatInput, setSeatInput] = useState("");
 
-  const sortedSeatRows = useMemo(() => {
-    const seatCollator = new Intl.Collator(undefined, {
-      numeric: true,
-      sensitivity: "base",
-    });
-    const rowCollator = new Intl.Collator(undefined, { sensitivity: "base" });
-    const grouped = new Map<string, typeof seats>();
-    for (const seat of seats) {
-      const row = (seat.seat_number.match(/^[A-Za-z]+/)?.[0] ?? "#").toUpperCase();
-      const existing = grouped.get(row) ?? [];
-      existing.push(seat);
-      grouped.set(row, existing);
-    }
-    return Array.from(grouped.entries())
-      .sort((a, b) => rowCollator.compare(a[0], b[0]))
-      .map(([row, rowSeats]) => ({
-        row,
-        seats: [...rowSeats].sort((a, b) =>
-          seatCollator.compare(a.seat_number, b.seat_number),
-        ),
-      }));
-  }, [seats]);
+  const sortedSeatRows = useMemo(() => groupSeatsByRow(seats), [seats]);
 
   useEffect(() => {
     void fetchVenues();
