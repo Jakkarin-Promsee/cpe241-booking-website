@@ -1,9 +1,16 @@
-const BASE_URL = 'http://localhost:5000';
+const DEFAULT_API_ORIGIN = 'http://localhost:5000';
+
+const API_ORIGIN = (() => {
+  const raw = import.meta.env.VITE_API_URL?.trim();
+  const base = raw && raw.length > 0 ? raw : DEFAULT_API_ORIGIN;
+  return base.replace(/\/+$/, '');
+})();
+
 const AUTH_STORAGE_KEY = 'cinema-admin-auth';
 
 function getToken(): string | null {
   try {
-    const stored = localStorage.getItem('cinema-admin-auth');
+    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
     if (!stored) return null;
     return (JSON.parse(stored) as { state?: { token?: string } })?.state?.token ?? null;
   } catch {
@@ -24,7 +31,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${API_ORIGIN}${path}`, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
