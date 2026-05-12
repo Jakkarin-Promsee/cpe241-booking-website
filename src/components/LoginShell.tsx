@@ -6,11 +6,39 @@ import type { LoginResult } from "@/store/useAuth";
 type LoginShellProps = {
   title: string;
   login: (email: string, password: string) => Promise<LoginResult>;
+  /** Autofill only when showcase mode is on (see comment block below). No UI for credentials. */
+  demoCredentials?: { email: string; password: string };
 };
 
-export default function LoginShell({ title, login }: LoginShellProps) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+/*
+ * --- SHOWCASE / DEMO LOGIN (tracking block for production deploy) ---
+ * Autofill runs only when:
+ *   - `npm run dev` (import.meta.env.DEV), or
+ *   - you set VITE_SHOWCASE_DEMO_LOGIN=true in client/.env for a demo build.
+ * For public production: remove `demoCredentials` from Login / UserLogin, or ship a build
+ * with DEV false and without VITE_SHOWCASE_DEMO_LOGIN.
+ * --- end SHOWCASE / DEMO LOGIN ---
+ */
+const SHOWCASE_LOGIN_HELP =
+  import.meta.env.DEV || import.meta.env.VITE_SHOWCASE_DEMO_LOGIN === "true";
+
+function initialDemoCredentials(
+  creds: { email: string; password: string } | undefined,
+): { email: string; password: string } {
+  if (!SHOWCASE_LOGIN_HELP || !creds) {
+    return { email: "", password: "" };
+  }
+  return { email: creds.email, password: creds.password };
+}
+
+export default function LoginShell({
+  title,
+  login,
+  demoCredentials,
+}: LoginShellProps) {
+  const initial = initialDemoCredentials(demoCredentials);
+  const [email, setEmail] = useState(initial.email);
+  const [password, setPassword] = useState(initial.password);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
