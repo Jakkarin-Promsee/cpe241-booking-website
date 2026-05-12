@@ -564,9 +564,8 @@ export default function ScreenManagementPage() {
     null,
   );
   const [showtimeFormKey, setShowtimeFormKey] = useState(0);
-  const [createPrefill, setCreatePrefill] = useState<
-    Partial<ScreenFormState> | null
-  >(null);
+  const [createPrefill, setCreatePrefill] =
+    useState<Partial<ScreenFormState> | null>(null);
   const [seatPricingModalOpen, setSeatPricingModalOpen] = useState(false);
   const [seatPricingInitialPrices, setSeatPricingInitialPrices] = useState<
     Record<number, number>
@@ -675,7 +674,9 @@ export default function ScreenManagementPage() {
       venueSeatsByVenueId[venue.venues_id] ??
       (await fetchVenueSeats(venue.venues_id));
     if (venueSeats.length === 0) {
-      window.alert("This venue has no assigned seats. Please add venue seats first.");
+      window.alert(
+        "This venue has no assigned seats. Please add venue seats first.",
+      );
       return;
     }
 
@@ -738,8 +739,7 @@ export default function ScreenManagementPage() {
     [selectedDate, selectedVenueName, createPrefill],
   );
 
-  const screenModalInitial =
-    editScreenModalInitial ?? createScreenModalInitial;
+  const screenModalInitial = editScreenModalInitial ?? createScreenModalInitial;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto bg-(--color-surface-panel) p-5">
