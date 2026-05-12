@@ -6,7 +6,15 @@ import BookingPage from "./pages/Booking";
 import ReportsPage from "./pages/Report";
 import VenueManagementPage from "./pages/VenueManagement";
 import LoginPage from "./pages/Login";
+import UserLoginPage from "./pages/UserLogin";
+import LandingPage from "./pages/LandingPage";
+import CustomerBookingLayout from "./pages/customer/CustomerBookingLayout";
+import CustomerMoviePick from "./pages/customer/CustomerMoviePick";
+import CustomerShowtimePick from "./pages/customer/CustomerShowtimePick";
+import CustomerSeatSelection from "./pages/customer/CustomerSeatSelection";
+import CustomerCheckoutPage from "./pages/customer/CustomerCheckoutPage";
 import { useAuthStore } from "./store/useAuth";
+import { useCustomerAuthStore } from "./store/useCustomerAuth";
 import NotFound from "./pages/NotFound";
 import AdminPageLayout from "./components/AdminPageLayout";
 
@@ -34,10 +42,38 @@ const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const UserLoginPublishedRoutes = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const authed = useCustomerAuthStore((s) => s.authed);
+
+  if (authed) {
+    return <Navigate to="/booking/movies" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const CustomerProtectedRoute = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const authed = useCustomerAuthStore((s) => s.authed);
+
+  if (!authed) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/admin/" replace />} />
+      <Route path="/" element={<LandingPage />} />
 
       <Route
         path="/admin/login"
@@ -47,6 +83,31 @@ export default function App() {
           </AdminPagePlubishedRoutes>
         }
       />
+
+      <Route
+        path="/login"
+        element={
+          <UserLoginPublishedRoutes>
+            <UserLoginPage />
+          </UserLoginPublishedRoutes>
+        }
+      />
+
+      <Route
+        path="/booking"
+        element={
+          <CustomerProtectedRoute>
+            <CustomerBookingLayout />
+          </CustomerProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="movies" replace />} />
+        <Route path="movies" element={<CustomerMoviePick />} />
+        <Route path="movies/:showId/showtimes" element={<CustomerShowtimePick />} />
+        <Route path="showings/:showingId/seats" element={<CustomerSeatSelection />} />
+        <Route path="checkout" element={<CustomerCheckoutPage />} />
+        <Route path="checkout/:bookingId" element={<CustomerCheckoutPage />} />
+      </Route>
 
       {/* Admin Navsidebar and Topbar template */}
       <Route
